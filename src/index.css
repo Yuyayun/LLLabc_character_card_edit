@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+@import url("https://fontsapi.zeoseven.com/440/main/result.css");
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* ========== Apple Style 主题变量 ========== */
+:root {
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: rgba(255, 255, 255, 0.85);
+  --popover-foreground: #1d1d1f;
+  --primary: #007aff;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e8ed;
+  --secondary-foreground: #1d1d1f;
+  --muted: #e5e5ea;
+  --muted-foreground: #86868b;
+  --accent: #f2f2f7;
+  --accent-foreground: #1d1d1f;
+  --destructive: #ff3b30;
+  --destructive-foreground: #ffffff;
+  --border: rgba(60, 60, 67, 0.12);
+  --input: rgba(60, 60, 67, 0.12);
+  --ring: rgba(0, 122, 255, 0.3);
+  --radius: 0.85rem;
+}
+
+.dark {
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --card: #1c1c1e;
+  --card-foreground: #f5f5f7;
+  --popover: rgba(28, 28, 30, 0.75);
+  --popover-foreground: #f5f5f7;
+  --primary: #0a84ff;
+  --primary-foreground: #ffffff;
+  --secondary: #2c2c2e;
+  --secondary-foreground: #f5f5f7;
+  --muted: #2c2c2e;
+  --muted-foreground: #98989d;
+  --accent: #3a3a3c;
+  --accent-foreground: #f5f5f7;
+  --destructive: #ff453a;
+  --destructive-foreground: #ffffff;
+  --border: rgba(84, 84, 88, 0.65);
+  --input: rgba(84, 84, 88, 0.65);
+  --ring: rgba(10, 132, 255, 0.3);
+}
+
+/* ========== 全局基础 ========== */
+* {
+  border-color: var(--border);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family:
+    "Huiwen-Fangsong",
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "PingFang SC",
+    "Microsoft YaHei",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========== Apple 风格覆写 ========== */
+
+/* 卡片悬浮阴影 */
+.bg-card {
+  box-shadow:
+    0 4px 24px -8px rgba(0, 0, 0, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+.dark .bg-card {
+  box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.3);
+}
+
+/* 按钮点击缩放反馈 */
+button {
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* 输入框质感 */
+input,
+textarea {
+  transition: all 0.2s ease !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+input:focus,
+textarea:focus {
+  box-shadow:
+    0 0 0 3px var(--ring),
+    inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* 顶栏毛玻璃效果 */
+header.sticky {
+  background-color: rgba(245, 245, 247, 0.72) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 0.5px solid var(--border);
+}
+.dark header.sticky {
+  background-color: rgba(0, 0, 0, 0.72) !important;
+}
+
+/* 弹出层毛玻璃 */
+.bg-popover,
+[role="dialog"] div > div.bg-card {
+  background-color: var(--popover) !important;
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  box-shadow:
+    0 10px 40px -10px rgba(0, 0, 0, 0.1),
+    0 0 0 1px var(--border);
+}
+
+/* Mac 风格细滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(134, 134, 139, 0.3);
+  border-radius: 9999px;
+  border: 2px solid var(--background);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(134, 134, 139, 0.5);
+}
+/* 1. 把底色提亮，摆脱灰扑扑的感觉 (替换掉原来的 :root) */
+:root {
+  /* 更清透的苹果底灰，不再那么暗 */
+  --background: #fafbfc;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  /* 弹出层稍微调低一点点透明度，增加透亮感 */
+  --popover: rgba(255, 255, 255, 0.75);
+  --popover-foreground: #1d1d1f;
+  --primary: #007aff;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e8ed;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f0f0f5; /* 次要占位板也提亮 */
+  --muted-foreground: #86868b;
+  --accent: #f2f2f7;
+  --accent-foreground: #1d1d1f;
+  --destructive: #ff3b30;
+  --destructive-foreground: #ffffff;
+  /* 边框色变淡，模拟极细雕刻线 */
+  --border: rgba(0, 0, 0, 0.06);
+  --input: rgba(0, 0, 0, 0.08);
+  --ring: rgba(0, 122, 255, 0.3);
+  --radius: 0.85rem;
+}
+
+/* 2. 顶栏的高级打光处理（新增部分，加在文件最下面） */
+/* 就算不滚动，也给顶栏加一条极细的高光内阴影和底部实线，让它彻底和背景分开 */
+.fixed.top-0 {
+  background-color: rgba(250, 251, 252, 0.65) !important;
+  backdrop-filter: blur(28px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(220%) !important;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 3. 强行拯救你截图里那些扁平的角色卡片（新增部分） */
+/* AI 没给你写 bg-card，我强制通过网格组(grid)抓取它们加魔法 */
+.grid > .group.relative {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  /* 加入苹果经典的弥散悬浮阴影 */
+  box-shadow:
+    0 4px 16px -4px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* 你的鼠标放上去时，卡片会像 iOS 图标一样浮起来 */
+.grid > .group.relative:hover {
+  box-shadow:
+    0 16px 32px -8px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+  /* 隐藏掉原来那个粗暴的蓝色外环(ring) */
+  --tw-ring-color: transparent !important;
+}
+
+/* 让图片容器（原来是 bg-muted）也变白一点，消除色块感 */
+.grid > .group.relative .bg-muted {
+  background-color: #f7f7f9;
+}
