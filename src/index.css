@@ -26,7 +26,7 @@
   --color-ring: var(--ring);
 }
 
-/* ========== Apple Style 主题变量 ========== */
+/* ========== 主题变量 ========== */
 :root {
   --background: #f5f5f7;
   --foreground: #1d1d1f;
@@ -95,7 +95,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ========== Apple 风格覆写 ========== */
+/* ========== 风格覆写 ========== */
 
 /* 卡片悬浮阴影 */
 .bg-card {

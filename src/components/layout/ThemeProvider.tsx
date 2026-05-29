@@ -12,7 +12,7 @@ interface AccentDef {
 
 export const accentDefs: Record<AccentColor, AccentDef> = {
   indigo: {
-    label: "Apple 蓝",
+    label: "系统蓝",
     light: { primary: "#007AFF", ring: "rgba(0, 122, 255, 0.3)" },
     dark: { primary: "#0A84FF", ring: "rgba(10, 132, 255, 0.3)" },
   },
