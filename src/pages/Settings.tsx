@@ -65,8 +65,13 @@ export function Settings() {
   // 云同步状态
   const [config, setConfig] = useState<CloudSyncConfig>(createDefaultConfig());
   const [configLoaded, setConfigLoaded] = useState(false);
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
-  const [verifying, setVerifying] = useState(false);
+  const [tokenCheck, setTokenCheck] = useState<{
+    valid: boolean
+    hasGistScope: boolean
+    scopes: string[]
+    user: string | null
+  } | null>(null)
+  const [verifying, setVerifying] = useState(false)
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -100,13 +105,19 @@ export function Settings() {
   async function handleVerify() {
     if (!config.githubToken) return
     setVerifying(true)
-    setTokenValid(null)
+    setTokenCheck(null)
     try {
-      const ok = await verifyToken(config.githubToken)
-      setTokenValid(ok)
-      toast[ok ? "success" : "error"](ok ? "Token 验证成功" : "Token 无效，请检查是否正确且具有 gist 权限")
+      const result = await verifyToken(config.githubToken)
+      setTokenCheck(result)
+      if (!result.valid) {
+        toast.error("Token 无效，请检查是否正确")
+      } else if (!result.hasGistScope) {
+        toast.error(`Token 有效但缺少 gist 权限（当前权限: ${result.scopes.length ? result.scopes.join(", ") : "无"}）。请重新创建 Token 并勾选 gist scope。`)
+      } else {
+        toast.success(`Token 验证成功，已登录 ${result.user}`)
+      }
     } catch {
-      setTokenValid(false)
+      setTokenCheck({ valid: false, hasGistScope: false, scopes: [], user: null })
       toast.error("验证失败，请检查网络连接")
     } finally {
       setVerifying(false)
@@ -114,8 +125,8 @@ export function Settings() {
   }
 
   async function handleCreateGist() {
-    if (!config.githubToken || !tokenValid) {
-      toast.error("请先验证 Token")
+    if (!config.githubToken || !tokenCheck?.hasGistScope) {
+      toast.error("请先验证 Token 并确保拥有 gist 权限")
       return
     }
     setCreating(true)
@@ -381,7 +392,7 @@ export function Settings() {
                             value={config.githubToken}
                             onChange={(e) => {
                               updateConfig({ githubToken: e.target.value })
-                              setTokenValid(null)
+                              setTokenCheck(null)
                             }}
                             className="h-8 text-xs font-mono flex-1"
                           />
@@ -394,8 +405,10 @@ export function Settings() {
                           >
                             {verifying ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : tokenValid === true ? (
+                            ) : tokenCheck?.hasGistScope ? (
                               <Check className="h-3 w-3 text-emerald-600" />
+                            ) : tokenCheck?.valid ? (
+                              <X className="h-3 w-3 text-amber-500" />
                             ) : (
                               "验证"
                             )}
@@ -413,6 +426,23 @@ export function Settings() {
                           </a>
                           ，选择 <strong>gist</strong> scope
                         </p>
+                        {tokenCheck && (
+                          <p className={cn(
+                            "text-[10px]",
+                            tokenCheck.hasGistScope
+                              ? "text-emerald-600"
+                              : tokenCheck.valid
+                                ? "text-amber-600"
+                                : "text-red-600"
+                          )}>
+                            {tokenCheck.hasGistScope
+                              ? `✓ 权限正常 (${tokenCheck.scopes.join(", ")})`
+                              : tokenCheck.valid
+                                ? `⚠ Token 有效但缺少 gist 权限（当前: ${tokenCheck.scopes.length ? tokenCheck.scopes.join(", ") : "无"}）`
+                                : "✗ Token 无效"}
+                            {tokenCheck.user && ` — ${tokenCheck.user}`}
+                          </p>
+                        )}
                       </div>
 
                       {/* Gist ID */}

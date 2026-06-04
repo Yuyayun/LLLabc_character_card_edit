@@ -57,21 +57,14 @@ export async function importAllData(data: CloudData): Promise<void> {
 
 // ========== Token 验证 ==========
 
-export async function verifyToken(token: string): Promise<boolean> {
-  try {
-    const resp = await fetch(`${GITHUB_API}/user`, {
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: "application/vnd.github+json",
-      },
-    })
-    return resp.ok
-  } catch {
-    return false
-  }
+export interface TokenCheckResult {
+  valid: boolean
+  hasGistScope: boolean
+  scopes: string[]
+  user: string | null
 }
 
-async function hasGistScope(token: string): Promise<boolean> {
+export async function verifyToken(token: string): Promise<TokenCheckResult> {
   try {
     const resp = await fetch(`${GITHUB_API}/user`, {
       headers: {
@@ -79,12 +72,21 @@ async function hasGistScope(token: string): Promise<boolean> {
         Accept: "application/vnd.github+json",
       },
     })
-    if (!resp.ok) return false
+    if (!resp.ok) {
+      return { valid: false, hasGistScope: false, scopes: [], user: null }
+    }
+    const userData = await resp.json() as { login?: string }
     // GitHub 在 X-OAuth-Scopes 头中返回 token 的权限范围
-    const scopes = resp.headers.get("X-OAuth-Scopes") || ""
-    return scopes.includes("gist")
+    const scopesHeader = resp.headers.get("X-OAuth-Scopes") || ""
+    const scopes = scopesHeader.split(",").map((s) => s.trim()).filter(Boolean)
+    return {
+      valid: true,
+      hasGistScope: scopes.includes("gist"),
+      scopes,
+      user: userData.login ?? null,
+    }
   } catch {
-    return false
+    return { valid: false, hasGistScope: false, scopes: [], user: null }
   }
 }
 
@@ -134,11 +136,8 @@ export async function createGist(
 export async function uploadToGist(
   config: CloudSyncConfig
 ): Promise<void> {
-  // 先验证 token 是否有 gist scope
-  const ok = await hasGistScope(config.githubToken)
-  if (!ok) {
-    throw new Error("Token 无效或缺少 gist 权限，请重新检查")
-  }
+  // 先验证 token 是否具备 gist scope
+  await requireGistScope(config.githubToken)
 
   const data = await exportAllData()
   const filename = config.gistFilename || "CharCardEditor_Cloud.json"
@@ -169,9 +168,22 @@ export async function uploadToGist(
   })
 }
 
+async function requireGistScope(token: string): Promise<void> {
+  const check = await verifyToken(token)
+  if (!check.valid) throw new Error("Token 无效，请重新验证")
+  if (!check.hasGistScope) {
+    throw new Error(
+      `Token 缺少 gist 权限（当前权限: ${check.scopes.length ? check.scopes.join(", ") : "无"}）。\n请重新创建 Token 并勾选 gist scope。`
+    )
+  }
+}
+
 export async function downloadFromGist(
   config: CloudSyncConfig
 ): Promise<CloudData> {
+  // 先验证 token 是否具备 gist scope
+  await requireGistScope(config.githubToken)
+
   const resp = await fetch(gistUrl(config.gistId), {
     headers: {
       Authorization: `token ${config.githubToken}`,
