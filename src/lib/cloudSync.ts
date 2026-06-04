@@ -197,21 +197,32 @@ export async function downloadFromGist(
   }
 
   const gist = await resp.json() as {
-    files: Record<string, { content?: string; truncated?: boolean }>
+    files: Record<string, {
+      content?: string
+      truncated?: boolean
+      raw_url?: string
+    }>
   }
   const filename = config.gistFilename || "CharCardEditor_Cloud.json"
   const file = gist.files[filename]
 
-  if (!file?.content) {
-    throw new Error(`Gist 中未找到文件 "${filename}"`)
+  if (!file) {
+    throw new Error(`Gist 中未找到文件 "${filename}"，请在设置中检查文件名是否一致`)
   }
-  if (file.truncated) {
-    // truncated → 需要通过 raw URL 获取完整内容
-    const rawResp = await fetch(
-      `${GITHUB_API}/gists/${encodeURIComponent(config.gistId)}/raw`
-    )
+
+  // 文件被截断（>1MB），通过 raw_url 获取完整内容
+  if (file.truncated && file.raw_url) {
+    const rawResp = await fetch(file.raw_url)
     if (!rawResp.ok) throw new Error("获取完整 Gist 内容失败")
-    return (await rawResp.json()) as CloudData
+    try {
+      return (await rawResp.json()) as CloudData
+    } catch {
+      throw new Error("Gist 内容解析失败，JSON 格式不正确")
+    }
+  }
+
+  if (!file.content) {
+    throw new Error(`Gist 文件 "${filename}" 内容为空`)
   }
 
   try {
