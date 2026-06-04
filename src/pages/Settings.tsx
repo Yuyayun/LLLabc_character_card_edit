@@ -551,7 +551,9 @@ export function Settings() {
                 </span>
               </div>
               <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
-                <li>自动上传新增进度提示：保存后依次显示"正在同步…"→"云端同步完成"</li>
+                <li>云同步下载大幅提速：gzip 压缩 + 移除冗余请求，数据体积减少 80%+</li>
+                <li>自动上传新增进度提示："正在同步…"→"云端同步完成"</li>
+                <li>PWA 新版本提醒：检测到更新后弹窗提示刷新</li>
               </ul>
             </div>
 
