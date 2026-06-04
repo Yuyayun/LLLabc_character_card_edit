@@ -216,4 +216,29 @@ export interface Memo {
   created_at: Date
   updated_at: Date
   sort_order: number
+  edit_sessions: { start: number; end: number }[]
+}
+
+// ========== 云同步 ==========
+
+export interface CloudSyncConfig {
+  id: "cloud_sync"
+  enabled: boolean
+  gistId: string
+  gistFilename: string
+  githubToken: string
+  autoUpload: boolean
+  lastSyncAt: Date | null
+  conflictStrategy: "force_push" | "force_pull"
+}
+
+export interface CloudData {
+  version: 1
+  exported_at: string
+  characterCards: CharacterCard[]
+  worldBooks: WorldBook[]
+  presets: Preset[]
+  apiConfigs: ApiConfig[]
+  chatSessions: ChatSession[]
+  memos: Memo[]
 }

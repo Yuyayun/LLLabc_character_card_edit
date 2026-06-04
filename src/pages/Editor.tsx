@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { exportJSON, exportPNG } from "@/lib/parser"
+import { scheduleSilentUpload } from "@/lib/cloudSync"
 import { EditorBasic } from "@/components/editor/EditorBasic"
 import { EditorDefinition } from "@/components/editor/EditorDefinition"
 import { EditorGreetings } from "@/components/editor/EditorGreetings"
@@ -91,6 +92,7 @@ export function Editor() {
     try {
       await db.characterCards.put(toSave)
       dirtyRef.current = false
+      scheduleSilentUpload()
       toast.success("已保存")
       if (isNew && toSave.id) {
         navigate(`/editor/${toSave.id}`, { replace: true })

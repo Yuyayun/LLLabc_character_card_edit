@@ -62,6 +62,7 @@ export function Dashboard() {
         presets: await db.presets.toArray(),
         apiConfigs: await db.apiConfigs.toArray(),
         chatSessions: await db.chatSessions.toArray(),
+        memos: await db.memos.toArray(),
         exported_at: new Date().toISOString(),
       }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
@@ -98,6 +99,9 @@ export function Dashboard() {
       }
       if (data.chatSessions) {
         await db.chatSessions.bulkPut(data.chatSessions)
+      }
+      if (data.memos) {
+        await db.memos.bulkPut(data.memos)
       }
       loadCards()
     } catch {
