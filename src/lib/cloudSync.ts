@@ -1,5 +1,6 @@
 import type { CloudSyncConfig, CloudData } from "@/types"
 import { db } from "./db"
+import { toast } from "sonner"
 
 const GITHUB_API = "https://api.github.com"
 
@@ -250,9 +251,15 @@ async function performSilentUpload(): Promise<void> {
     if (!config?.enabled || !config?.autoUpload) return
     if (!config.gistId || !config.githubToken) return
 
-    await uploadToGist(config)
+    const loadingToast = toast.loading("正在同步到云端…")
+    try {
+      await uploadToGist(config)
+      toast.success("云端同步完成", { id: loadingToast })
+    } catch {
+      toast.error("云端同步失败，请检查设置", { id: loadingToast })
+    }
   } catch {
-    // 静默失败，不打断用户
+    // 静默失败（无法读取配置）
   }
 }
 

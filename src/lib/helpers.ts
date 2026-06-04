@@ -9,6 +9,7 @@ export function createDefaultMemo(characterId: string): Memo {
     created_at: new Date(),
     updated_at: new Date(),
     sort_order: Date.now(),
+    edit_sessions: [],
   }
 }
 

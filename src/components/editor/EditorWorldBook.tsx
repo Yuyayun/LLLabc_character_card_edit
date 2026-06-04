@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select"
 import { Plus, Trash2, ExternalLink, Link, Unlink } from "lucide-react"
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import { createDefaultWorldBookEntry } from "@/lib/helpers"
 import { generateId } from "@/lib/utils"
 import { db } from "@/lib/db"
@@ -24,9 +25,25 @@ export function EditorWorldBook({ card, onChange }: Props) {
   const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set())
   const [standaloneBooks, setStandaloneBooks] = useState<WorldBook[]>([])
 
+  function loadStandaloneBooks() {
+    db.worldBooks.toArray().then((all) => {
+      const sorted = all.sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      )
+      setStandaloneBooks(sorted)
+    }).catch(() => {
+      // 查询失败静默处理，列表保持 []
+    })
+  }
+
   useEffect(() => {
-    db.worldBooks.orderBy("updated_at").reverse().toArray().then(setStandaloneBooks)
+    loadStandaloneBooks()
   }, [])
+
+  // 角色卡变更时刷新独立书列表（用于提取后立即显示）
+  useEffect(() => {
+    loadStandaloneBooks()
+  }, [card.id])
 
   const worldBook = card.character_book
   const boundBook = standaloneBooks.find((b) => b.id === card.bound_worldbook_id)
@@ -35,7 +52,7 @@ export function EditorWorldBook({ card, onChange }: Props) {
     if (worldBook) return worldBook
     const newWB: WorldBook = {
       id: generateId(),
-      name: "",
+      name: card.name ? card.name + " 的世界书" : "未命名世界书",
       description: "",
       entries: [],
       is_standalone: false,
@@ -107,17 +124,22 @@ export function EditorWorldBook({ card, onChange }: Props) {
 
   async function extractWorldBook() {
     if (!worldBook) return
-    const standalone: WorldBook = {
-      ...structuredClone(worldBook),
-      id: generateId(),
-      is_standalone: true,
-      name: worldBook.name || (card.name ? card.name + " 世界书" : "未命名世界书"),
-      created_at: new Date(),
-      updated_at: new Date(),
+    try {
+      const standalone: WorldBook = {
+        ...structuredClone(worldBook),
+        id: generateId(),
+        is_standalone: true,
+        name: worldBook.name || (card.name ? card.name + " 世界书" : "未命名世界书"),
+        created_at: new Date(),
+        updated_at: new Date(),
+      }
+      await db.worldBooks.put(standalone)
+      toast.success("已提取为独立世界书，请保存角色卡以完成解绑")
+      onChange({ ...card, character_book: undefined, bound_worldbook_id: standalone.id })
+      setStandaloneBooks((prev) => [standalone, ...prev])
+    } catch {
+      toast.error("提取失败，请检查存储空间")
     }
-    await db.worldBooks.put(standalone)
-    onChange({ ...card, character_book: undefined, bound_worldbook_id: standalone.id })
-    setStandaloneBooks((prev) => [standalone, ...prev])
   }
 
   function bindWorldBook(bookId: string) {
@@ -177,16 +199,18 @@ export function EditorWorldBook({ card, onChange }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* 世界书名称标题 */}
+      <div className="space-y-1.5 pb-3 border-b">
+        <Input
+          value={worldBook.name}
+          onChange={(e) => updateWorldBook({ name: e.target.value })}
+          placeholder="世界书名称"
+          className="text-base font-semibold border-none px-0 h-auto max-w-sm"
+        />
+        <span className="text-xs text-muted-foreground">{worldBook.entries.length} 条条目</span>
+      </div>
+
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Input
-            value={worldBook.name}
-            onChange={(e) => updateWorldBook({ name: e.target.value })}
-            placeholder="世界书名称"
-            className="max-w-xs"
-          />
-          <span className="text-xs text-muted-foreground">{worldBook.entries.length} 条条目</span>
-        </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={addEntry}>
             <Plus className="h-4 w-4 mr-1" />

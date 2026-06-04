@@ -301,8 +301,23 @@ function normalizeDepthPrompt(raw: Record<string, unknown> | undefined) {
 
 // ========== 导出 ==========
 
+async function resolveCharacterBook(card: CharacterCard): Promise<CharacterCard> {
+  // 如果已有内嵌世界书，直接返回
+  if (card.character_book) return card
+  // 如果绑定了独立世界书，从 DB 取出嵌入
+  if (card.bound_worldbook_id) {
+    const { db } = await import("@/lib/db")
+    const book = await db.worldBooks.get(card.bound_worldbook_id)
+    if (book) {
+      return { ...card, character_book: structuredClone(book) }
+    }
+  }
+  return card
+}
+
 export async function exportJSON(card: CharacterCard): Promise<void> {
-  const specData = buildSpecData(card)
+  const resolved = await resolveCharacterBook(card)
+  const specData = buildSpecData(resolved)
 
   const output: Record<string, unknown> = {
     name: card.name,
@@ -351,8 +366,9 @@ export async function exportPNG(card: CharacterCard): Promise<void> {
     pngBinary = new Uint8Array(await resp.arrayBuffer())
   }
 
-  // 构建完整的 SillyTavern 角色卡 JSON
-  const specData = buildSpecData(card)
+  // 构建完整的 SillyTavern 角色卡 JSON（含绑定的世界书）
+  const resolved = await resolveCharacterBook(card)
+  const specData = buildSpecData(resolved)
   const output: Record<string, unknown> = {
     name: card.name,
     description: card.description,

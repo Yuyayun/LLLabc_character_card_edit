@@ -544,6 +544,20 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.0.8
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-06-04
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>自动上传新增进度提示：保存后依次显示"正在同步…"→"云端同步完成"</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.0.7
                 </span>
                 <span className="text-xs text-muted-foreground">

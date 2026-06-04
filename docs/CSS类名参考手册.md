@@ -96,8 +96,8 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  /* SF + 苹方原生字体栈，抗锯齿渲染 */
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  /* 惠文仿宋（正文）→ SF + 苹方原生字体栈，抗锯齿渲染 */
+  font-family: "Huiwen-Fangsong", -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -153,6 +153,86 @@ header.sticky {
 }
 ::-webkit-scrollbar-thumb:hover { background-color: rgba(134,134,139,0.5); }
 ```
+
+### 1.6 Tailwind v4 @theme 映射
+
+项目使用 Tailwind v4，CSS 变量通过 `@theme` 块映射为 Tailwind 工具类。**不要直接用 `bg-[#xxx]`，应使用语义 token**：
+
+```css
+@theme {
+  --color-background: var(--background);   /* → bg-background */
+  --color-foreground: var(--foreground);   /* → text-foreground */
+  --color-card: var(--card);               /* → bg-card */
+  --color-primary: var(--primary);         /* → bg-primary / text-primary */
+  --color-muted: var(--muted);             /* → bg-muted */
+  --color-destructive: var(--destructive); /* → bg-destructive / text-destructive */
+  --color-border: var(--border);           /* → border-border */
+  --color-ring: var(--ring);               /* → ring-ring */
+  /* ... 其余同理 */
+}
+```
+
+这意味着：
+- ✅ 用 `bg-card`、`text-muted-foreground`、`border-border` 等语义类
+- ❌ 不要用 `bg-[#ffffff]`、`text-[#86868b]`，否则暗色模式不会自动切换
+- ❌ 不要绕过 `@theme` 直接用 CSS 变量写 `color: var(--primary)` —— 用 Tailwind 类 `text-primary`
+
+### 1.7 首页角色卡片浮起动效（index.css 原生覆写）
+
+手册 2.5 中列出的 Dashboard Tailwind 类名是基础结构，实际视觉效果由以下原生 CSS 提供。**修改卡片外观时必须同时考虑这些规则**：
+
+```css
+/* 卡片基底 — 浮起阴影 + 圆角 + 过渡 */
+.grid > .group.relative {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  box-shadow:
+    0 4px 16px -4px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+/* 悬停态 — 加深阴影 + 上浮 2px */
+.grid > .group.relative:hover {
+  box-shadow:
+    0 16px 32px -8px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+}
+.grid > .group.relative .bg-muted {
+  background-color: #f7f7f9;
+}
+
+/* 暗色模式适配 */
+.dark .grid > .group.relative {
+  background-color: #1c1c1e;
+  border-color: rgba(84, 84, 88, 0.4);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.3);
+}
+.dark .grid > .group.relative:hover {
+  box-shadow:
+    0 16px 32px -8px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.dark .grid > .group.relative .bg-muted {
+  background-color: #2c2c2e;
+}
+```
+
+> **注意**：这些规则的选择器 `.grid > .group.relative` 匹配的是 Dashboard 的卡片网格。如果修改了网格结构或类名，这些覆写会失效，需要同步更新。
+
+### 1.8 动画缓动约定
+
+整个项目的过渡动画使用统一的缓动函数，保持交互手感一致：
+
+| 场景 | 缓动函数 |
+|---|---|
+| 按钮按下/回弹 | `cubic-bezier(0.25, 1, 0.5, 1)` |
+| 卡片悬浮/阴影 | `ease` 或 `cubic-bezier(0.25, 1, 0.5, 1)` |
+| 输入框焦点 | `ease` |
+| 颜色/透明度过渡 | `ease`（Tailwind `transition-colors` 默认） |
+
+CSS 中 `!important` 的使用原因：这些覆写需要覆盖 shadcn/ui 组件自带的 `transition` 样式，**不是随意加的**。
 
 ---
 
@@ -771,3 +851,105 @@ flex flex-col items-center justify-center py-16 text-muted-foreground text-sm
 ```
 
 在 JSX 中切换主题时，在根元素添加/移除 `dark` 类即可自动切换所有颜色变量。
+
+---
+
+## 九、移动端适配
+
+> 本项目为 PWA，移动端使用场景频繁。以下约束必须遵守。
+
+### 9.1 触摸目标最小尺寸
+
+微信/Apple HIG 推荐最小触摸目标 **44×44px**。Tailwind 中对应：
+
+| 尺寸类 | 实际像素 | 是否达标 |
+|---|---|---|
+| `h-7 w-7` | 28px | ❌ 太小，不可用于独立点击 |
+| `h-8 w-8` | 32px | ❌ 偏小，仅限密集列表中的辅助按钮 |
+| `h-9 w-9` | 36px | ⚠️ 临界值，同一行有多个按钮时可以 |
+| `h-10 w-10` | 40px | ⚠️ 接近达标 |
+| `h-11 w-11` | 44px | ✅ 标准触摸目标 |
+
+**规则**：独立交互按钮（如保存、删除、导航）至少 `h-9` 起；纯图标按钮在密集布局中可用 `h-8`，但周围需留足够间距。
+
+### 9.2 安全区（刘海屏 / Home Indicator）
+
+PWA 全屏模式下，内容可能被刘海、底部横条遮挡。使用 `env(safe-area-inset-*)` 留出安全距离：
+
+```css
+/* 底部固定栏 — 避开 Home Indicator */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* 顶部固定栏 — 避开刘海 */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+```
+
+Tailwind 中没有内建类，需要时直接在 `index.css` 中新增自定义规则。
+
+### 9.3 滚动与弹性
+
+iOS Safari 默认的橡皮筋效果（bounce）可能和自定义滚动区冲突：
+
+```css
+/* 禁止弹性滚动（用于固定定位的全屏容器） */
+.no-overscroll {
+  overscroll-behavior: none;
+}
+/* iOS 平滑滚动 */
+.scroll-smooth {
+  -webkit-overflow-scrolling: touch;
+}
+```
+
+项目中的 `ScrollArea` 组件已处理基础滚动，但在 iOS 端如需更流畅体验可在 `index.css` 追加 `-webkit-overflow-scrolling: touch`。
+
+### 9.4 触屏无 hover
+
+移动端 `:hover` 样式在触屏上表现为"点击后粘滞"，体验很差。必须用媒体查询包裹纯装饰性的 hover 效果：
+
+```css
+/* ✅ 正确 — 仅在有 hover 能力的设备上生效 */
+@media (hover: hover) {
+  .card:hover {
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  }
+}
+```
+
+Tailwind 的 `hover:` 前缀不会自动过滤触屏。如果需要区分，要在 `index.css` 中写 `@media (hover: hover)` 包裹自定义规则。
+
+### 9.5 响应式断点回顾
+
+项目已有的响应式断点（见 6.8）：
+
+| 前缀 | 宽度 | 移动端适配要点 |
+|---|---|---|
+| 无（默认） | 0–639px | **手机竖屏**：单列布局，侧栏可收起，按钮换行 |
+| `sm:` | ≥640px | 小型平板：色块 3→6 列，内边距加大 |
+| `md:` | ≥768px | 平板横屏：网格 2→4 列，侧栏默认展开 |
+| `lg:` | ≥1024px | 桌面端：Basic 面板 1:2 分栏 |
+
+默认（无前缀）样式 = 移动端。写样式时遵循 **移动端优先**：先写移动端样式，再用 `sm:` `md:` `lg:` 逐级覆盖。
+
+### 9.6 移动端已知适配点
+
+以下是项目中已做移动端适配的关键位置，修改时不要破坏：
+
+| 位置 | 适配方式 |
+|---|---|
+| 首页卡片网格 | `grid-cols-2`（移动端 2 列）→ `sm:3` → `md:4` → `lg:5` → `xl:6` |
+| 设置页色块 | `grid-cols-3`（移动端 3 列）→ `sm:grid-cols-6` |
+| 设置页内边距 | `px-3 sm:px-4 py-6 sm:py-8` |
+| 编辑器侧栏 | `window.innerWidth >= 768` 时默认展开，否则收起 |
+| 编辑器侧栏宽度 | `w-[120px]` 展开 / `w-0` 收起 + `overflow-hidden` |
+| 顶栏导航 | `flex-wrap` 在小屏自动换行 |
+| 分段控件 | `whitespace-nowrap` 禁止按钮内文字换行 |
+
+### 9.7 移动端输入体验
+
+- 所有 `input` / `textarea` 已通过全局规则 `box-shadow: inset 0 1px 2px` + focus ring 优化
+- iOS 缩放：`<meta name="viewport" content="width=device-width, initial-scale=1.0">` 已在 `index.html` 中声明，输入框字号 ≥ 16px 时才不会触发 iOS 自动缩放。当前正文 `text-sm` 为 14px，若遇到 iOS 输入缩放问题，可在对应输入框加 `text-base`
+- `-webkit-tap-highlight-color: transparent` 已全局设置，点击时不会出现蓝色高亮
