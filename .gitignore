@@ -2,3 +2,9 @@ node_modules
 dist
 .DS_Store
 *.local
+
+# 开发文档 — 不推送至远程仓库
+docs/世界书编辑器修复方案.md
+docs/自检报告.md
+docs/预设编辑器需求文档.md
+docs/202605290915.css
