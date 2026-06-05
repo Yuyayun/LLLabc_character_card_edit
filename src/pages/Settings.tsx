@@ -19,6 +19,7 @@ import {
   downloadFromGist,
   checkConnection,
 } from "@/lib/cloudSync";
+import { verifyKey, isPresetUnlocked, clearUnlock } from "@/lib/lockKey";
 import {
   Moon,
   PaintBucket,
@@ -29,6 +30,8 @@ import {
   Check,
   X,
   Loader2,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -77,6 +80,11 @@ export function Settings() {
   const [downloading, setDownloading] = useState(false);
   const [connected, setConnected] = useState<boolean | null>(null);
 
+  // 预设解锁状态
+  const [presetUnlocked, setPresetUnlocked] = useState<boolean | null>(null)
+  const [keyInput, setKeyInput] = useState("")
+  const [keyChecking, setKeyChecking] = useState(false)
+
   const SYNC_ID = "cloud_sync" as const
 
   // 加载云同步配置
@@ -93,6 +101,11 @@ export function Settings() {
       checkConnection().then(setConnected)
     }
   }, [section, config.enabled, config.gistId, config.githubToken])
+
+  // 检查预设解锁状态
+  useEffect(() => {
+    isPresetUnlocked().then(setPresetUnlocked)
+  }, [section])
 
   function updateConfig(patch: Partial<CloudSyncConfig>) {
     setConfig((prev) => {
@@ -300,13 +313,118 @@ export function Settings() {
       {/* 预设管理 */}
       {section === "presets" && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm sm:text-base">预设管理</CardTitle>
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              预设编辑器
+              {presetUnlocked === null ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              ) : presetUnlocked ? (
+                <span className="text-xs text-emerald-500 flex items-center gap-1">
+                  <Check className="h-3 w-3" />
+                  已解锁
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  已锁定
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              预设管理功能将在后续版本中提供。此处将管理 AI 生成预设模板。
-            </p>
+          <CardContent className="space-y-3">
+            {presetUnlocked === null ? (
+              <p className="text-xs text-muted-foreground">
+                正在检查状态...
+              </p>
+            ) : presetUnlocked ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-md">
+                  <Unlock className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <div>
+                    <p className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      预设编辑器已解锁
+                    </p>
+                    <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/70">
+                      所有预设功能已可用：列表、编辑、导入导出
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-[11px] text-muted-foreground"
+                  onClick={async () => {
+                    await clearUnlock()
+                    setPresetUnlocked(false)
+                    toast.success("已锁定预设编辑器")
+                  }}
+                >
+                  清除解锁状态
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-md">
+                  <Lock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs sm:text-sm font-medium">
+                      预设编辑器已锁定
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      输入封锁 Key 以解锁预设编辑功能。如需获取 Key，请联系开发者。
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    placeholder="输入封锁 Key..."
+                    value={keyInput}
+                    onChange={(e) => setKeyInput(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        setKeyChecking(true)
+                        const ok = await verifyKey(keyInput)
+                        if (ok) {
+                          setPresetUnlocked(true)
+                          toast.success("预设编辑器已解锁！")
+                        } else {
+                          toast.error("Key 不正确")
+                        }
+                        setKeyInput("")
+                        setKeyChecking(false)
+                      }
+                    }}
+                    className="h-8 text-xs flex-1"
+                    disabled={keyChecking}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs shrink-0"
+                    disabled={keyChecking || !keyInput.trim()}
+                    onClick={async () => {
+                      setKeyChecking(true)
+                      const ok = await verifyKey(keyInput)
+                      if (ok) {
+                        setPresetUnlocked(true)
+                        toast.success("预设编辑器已解锁！")
+                      } else {
+                        toast.error("Key 不正确")
+                      }
+                      setKeyInput("")
+                      setKeyChecking(false)
+                    }}
+                  >
+                    {keyChecking ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                    ) : (
+                      <Unlock className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    解锁
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -541,6 +659,22 @@ export function Settings() {
             <CardTitle className="text-sm sm:text-base">更新日志</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.0
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-06-05
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>新增预设编辑器：支持采样参数、格式化模板、提示词管理（列表+池+拖拽排序）</li>
+                <li>支持导入/导出酒馆格式预设 JSON（名称 emoji 原样保留）</li>
+                <li>封锁 Key 访问控制：预设模块默认锁定，需在设置页输入 Key 解锁</li>
+              </ul>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">

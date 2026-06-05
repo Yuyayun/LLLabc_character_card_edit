@@ -7,6 +7,7 @@ import type {
   ChatSession,
   Memo,
   CloudSyncConfig,
+  AppSetting,
 } from "@/types"
 
 export class AppDB extends Dexie {
@@ -17,6 +18,7 @@ export class AppDB extends Dexie {
   chatSessions!: EntityTable<ChatSession, "id">
   memos!: EntityTable<Memo, "id">
   cloudSync!: EntityTable<CloudSyncConfig, "id">
+  settings!: EntityTable<AppSetting, "key">
 
   constructor() {
     super("CharCardEditorDB")
@@ -55,6 +57,28 @@ export class AppDB extends Dexie {
       chatSessions: "id, character_id, created_at",
       memos: "id, character_id, created_at, sort_order",
       cloudSync: "id",
+    })
+
+    this.version(5).stores({
+      characterCards: "id, name, created_at, updated_at",
+      worldBooks: "id, name, is_standalone, created_at, updated_at",
+      presets: "id, name, created_at",
+      apiConfigs: "id, name",
+      chatSessions: "id, character_id, created_at",
+      memos: "id, character_id, created_at, sort_order",
+      cloudSync: "id",
+      settings: "key",
+    })
+
+    this.version(6).stores({
+      characterCards: "id, name, created_at, updated_at",
+      worldBooks: "id, name, is_standalone, created_at, updated_at",
+      presets: "id, name, created_at, updated_at",
+      apiConfigs: "id, name",
+      chatSessions: "id, character_id, created_at",
+      memos: "id, character_id, created_at, sort_order",
+      cloudSync: "id",
+      settings: "key",
     })
   }
 }

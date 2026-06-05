@@ -1,4 +1,4 @@
-import type { CharacterCard, Memo } from "@/types"
+import type { CharacterCard, Memo, Preset, PresetPrompt } from "@/types"
 import { generateId } from "./utils"
 
 export function createDefaultMemo(characterId: string): Memo {
@@ -44,6 +44,43 @@ export function createDefaultCard(): CharacterCard {
     },
     created_at: new Date(),
     updated_at: new Date(),
+  }
+}
+
+export function createDefaultPreset(): Preset {
+  return {
+    id: generateId(),
+    name: "",
+    temperature: 1,
+    frequency_penalty: 0,
+    presence_penalty: 0,
+    top_p: 0.9,
+    top_k: 1,
+    top_a: 0,
+    min_p: 0,
+    repetition_penalty: 1,
+    openai_max_context: 128000,
+    openai_max_tokens: 4096,
+    prompts: [],
+    created_at: new Date(),
+    updated_at: new Date(),
+  }
+}
+
+export function createDefaultPresetPrompt(): PresetPrompt {
+  return {
+    identifier: generateId(),
+    name: "新建提示词",
+    enabled: true,
+    injection_position: 0,
+    injection_depth: 4,
+    injection_order: 100,
+    role: "system",
+    content: "",
+    system_prompt: false,
+    marker: false,
+    forbid_overrides: false,
+    injection_trigger: [],
   }
 }
 

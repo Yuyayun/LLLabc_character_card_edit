@@ -150,8 +150,40 @@ export interface Preset {
   openai_max_context: number
   openai_max_tokens: number
 
+  // 格式化模板
+  impersonation_prompt?: string
+  new_chat_prompt?: string
+  new_group_chat_prompt?: string
+  new_example_chat_prompt?: string
+  continue_nudge_prompt?: string
+  group_nudge_prompt?: string
+  wi_format?: string
+  scenario_format?: string
+  personality_format?: string
+  assistant_prefill?: string
+  assistant_impersonation?: string
+
+  // 行为开关
+  stream_openai?: boolean
+  names_behavior?: number
+  wrap_in_quotes?: boolean
+  send_if_empty?: string
+  seed?: number
+  n?: number
+  squash_system_messages?: boolean
+  continue_prefill?: boolean
+  continue_postfix?: string
+  function_calling?: boolean
+  show_thoughts?: boolean
+  reasoning_effort?: string
+  max_context_unlocked?: boolean
+  bias_preset_selected?: string
+
   // 提示词列表
   prompts: PresetPrompt[]
+
+  // 扩展（兼容酒馆未知字段，导入时原样保留、导出时展开到顶层）
+  extensions?: Record<string, unknown>
 
   created_at: Date
   updated_at: Date
@@ -170,6 +202,11 @@ export interface PresetPrompt {
   marker: boolean
   forbid_overrides: boolean
   injection_trigger?: string[]
+}
+
+export interface PresetPromptOrder {
+  identifier: string
+  enabled: boolean
 }
 
 // ========== API 配置 ==========
@@ -231,6 +268,16 @@ export interface CloudSyncConfig {
   lastSyncAt: Date | null
   conflictStrategy: "force_push" | "force_pull"
 }
+
+// ========== 应用设置 (键值对) ==========
+
+export interface AppSetting {
+  key: string
+  value: string
+  extra?: string
+}
+
+// ========== 云同步 ==========
 
 export interface CloudData {
   version: 1

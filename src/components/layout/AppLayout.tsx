@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom"
 import { useTheme } from "./ThemeProvider"
 import { Button } from "@/components/ui/button"
-import { Sun, Moon, Settings, MessageSquareText } from "lucide-react"
+import { Sun, Moon, Settings, MessageSquareText, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react"
+import { isPresetUnlocked } from "@/lib/lockKey"
 
 const navItems = [
   { path: "/", label: "首页" },
@@ -12,6 +14,11 @@ const navItems = [
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
+  const [showPresets, setShowPresets] = useState(false)
+
+  useEffect(() => {
+    isPresetUnlocked().then(setShowPresets)
+  }, [location.pathname])
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -37,6 +44,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </Link>
               ))}
+              {showPresets && (
+                <Link to="/presets">
+                  <Button
+                    variant={
+                      location.pathname === "/presets" || location.pathname.startsWith("/preset")
+                        ? "secondary"
+                        : "ghost"
+                    }
+                    size="sm"
+                    className={cn(
+                      (location.pathname === "/presets" || location.pathname.startsWith("/preset")) && "font-medium"
+                    )}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5 mr-1" />
+                    预设
+                  </Button>
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-2">

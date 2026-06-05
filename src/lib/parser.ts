@@ -529,6 +529,124 @@ function crc32(data: Uint8Array): number {
   return (crc ^ 0xffffffff) >>> 0
 }
 
+// ========== 预设导入/导出 ==========
+
+// 酒馆预设 JSON 中作为内部字段的键（导出时跳过）
+const PRESET_INTERNAL_KEYS = new Set([
+  "id", "created_at", "updated_at",
+])
+
+export async function parsePresetJSON(file: File): Promise<import("@/types").Preset> {
+  const text = await file.text()
+  const raw = JSON.parse(text) as Record<string, unknown>
+  const preset = normalizePreset(raw)
+  // 酒馆预设 JSON 没有顶层 name，用文件名代替
+  if (!preset.name) {
+    preset.name = file.name.replace(/\.json$/i, "")
+  }
+  return preset
+}
+
+function normalizePreset(raw: Record<string, unknown>): import("@/types").Preset {
+
+  // 已知字段直接取
+  const known = new Set([
+    "name", "temperature", "frequency_penalty", "presence_penalty",
+    "top_p", "top_k", "top_a", "min_p", "repetition_penalty",
+    "openai_max_context", "openai_max_tokens",
+    "impersonation_prompt", "new_chat_prompt", "new_group_chat_prompt",
+    "new_example_chat_prompt", "continue_nudge_prompt", "group_nudge_prompt",
+    "wi_format", "scenario_format", "personality_format",
+    "assistant_prefill", "assistant_impersonation",
+    "stream_openai", "names_behavior", "wrap_in_quotes", "send_if_empty",
+    "seed", "n", "squash_system_messages", "continue_prefill",
+    "continue_postfix", "function_calling", "show_thoughts",
+    "reasoning_effort", "max_context_unlocked", "bias_preset_selected",
+    "prompts", "extensions",
+  ])
+
+  const knownPreset: Record<string, unknown> = {}
+  const unknown: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (known.has(key)) {
+      knownPreset[key] = value
+    } else {
+      unknown[key] = value
+    }
+  }
+
+  // 合并 extensions
+  const existingExt = (knownPreset.extensions ?? {}) as Record<string, unknown>
+  const mergedExt = { ...existingExt, ...unknown }
+
+  return {
+    id: (raw.id as string) ?? generateId(),
+    name: (knownPreset.name as string) ?? "",
+    temperature: (knownPreset.temperature as number) ?? 1,
+    frequency_penalty: (knownPreset.frequency_penalty as number) ?? 0,
+    presence_penalty: (knownPreset.presence_penalty as number) ?? 0,
+    top_p: (knownPreset.top_p as number) ?? 0.9,
+    top_k: (knownPreset.top_k as number) ?? 1,
+    top_a: (knownPreset.top_a as number) ?? 0,
+    min_p: (knownPreset.min_p as number) ?? 0,
+    repetition_penalty: (knownPreset.repetition_penalty as number) ?? 1,
+    openai_max_context: (knownPreset.openai_max_context as number) ?? 128000,
+    openai_max_tokens: (knownPreset.openai_max_tokens as number) ?? 4096,
+    impersonation_prompt: knownPreset.impersonation_prompt as string | undefined,
+    new_chat_prompt: knownPreset.new_chat_prompt as string | undefined,
+    new_group_chat_prompt: knownPreset.new_group_chat_prompt as string | undefined,
+    new_example_chat_prompt: knownPreset.new_example_chat_prompt as string | undefined,
+    continue_nudge_prompt: knownPreset.continue_nudge_prompt as string | undefined,
+    group_nudge_prompt: knownPreset.group_nudge_prompt as string | undefined,
+    wi_format: knownPreset.wi_format as string | undefined,
+    scenario_format: knownPreset.scenario_format as string | undefined,
+    personality_format: knownPreset.personality_format as string | undefined,
+    assistant_prefill: knownPreset.assistant_prefill as string | undefined,
+    assistant_impersonation: knownPreset.assistant_impersonation as string | undefined,
+    stream_openai: knownPreset.stream_openai as boolean | undefined,
+    names_behavior: knownPreset.names_behavior as number | undefined,
+    wrap_in_quotes: knownPreset.wrap_in_quotes as boolean | undefined,
+    send_if_empty: knownPreset.send_if_empty as string | undefined,
+    seed: knownPreset.seed as number | undefined,
+    n: knownPreset.n as number | undefined,
+    squash_system_messages: knownPreset.squash_system_messages as boolean | undefined,
+    continue_prefill: knownPreset.continue_prefill as boolean | undefined,
+    continue_postfix: knownPreset.continue_postfix as string | undefined,
+    function_calling: knownPreset.function_calling as boolean | undefined,
+    show_thoughts: knownPreset.show_thoughts as boolean | undefined,
+    reasoning_effort: knownPreset.reasoning_effort as string | undefined,
+    max_context_unlocked: knownPreset.max_context_unlocked as boolean | undefined,
+    bias_preset_selected: knownPreset.bias_preset_selected as string | undefined,
+    prompts: Array.isArray(knownPreset.prompts)
+      ? (knownPreset.prompts as unknown as import("@/types").PresetPrompt[])
+      : [],
+    extensions: Object.keys(mergedExt).length > 0 ? mergedExt : undefined,
+    created_at: new Date(),
+    updated_at: new Date(),
+  }
+}
+
+export function exportPresetJSON(preset: import("@/types").Preset): void {
+  // 组装酒馆兼容输出：跳过内部字段，展开 extensions
+  const output: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(preset)) {
+    if (PRESET_INTERNAL_KEYS.has(key)) continue
+    if (key === "extensions") {
+      // 展开到顶层
+      const ext = value as Record<string, unknown> | undefined
+      if (ext) Object.assign(output, ext)
+      continue
+    }
+    output[key] = value
+  }
+
+  const json = JSON.stringify(output, null, 2)
+  const name = preset.name || "preset"
+  downloadFile(json, `${name}.json`, "application/json")
+}
+
 function downloadFile(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime })
   const url = URL.createObjectURL(blob)
