@@ -12,9 +12,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       manifest: {
-        name: '角色卡编辑器',
-        short_name: '卡编辑器',
-        description: 'SillyTavern 角色卡编辑器 - 编辑角色卡与世界书',
+        name: '空间站 Space Station',
+        short_name: 'Space Station',
+        description: 'SillyTavern 角色卡编辑与 AI 预设管理',
         theme_color: '#6366f1',
         background_color: '#0b1121',
         display: 'standalone',

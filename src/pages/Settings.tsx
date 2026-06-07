@@ -662,6 +662,22 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.0-hotfix
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-06-07
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>修复预设条目链接情况读取错误的问题</li>
+                <li>项目更名为「空间站 Space Station」</li>
+                <li>手机端导航栏精简为图标模式</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.1.0
                 </span>
                 <span className="text-xs text-muted-foreground">

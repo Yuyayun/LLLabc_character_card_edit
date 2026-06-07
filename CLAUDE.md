@@ -1,11 +1,12 @@
-# 酒馆角色卡编辑器
+# 空间站 Space Station
 
 ## 项目概述
 
-一个纯前端的 SillyTavern 角色卡编辑器（SPA + PWA），用于编辑 SillyTavern 角色卡（character cards）和世界书（world books）。
+一个纯前端的 SillyTavern 工具集（SPA + PWA），用于编辑 SillyTavern 角色卡（character cards）、世界书（world books）和 AI 预设。
 
-- **位置**: `c:\Users\Diluc\Documents\杂物堆放\开发？\`
-- **需求文档**: `c:\Users\Diluc\Documents\杂物堆放\开发？\需求文档.md`
+- **位置**: `c:\Users\Diluc\Documents\杂物堆放\角色卡编辑器\`
+- **需求文档**: `c:\Users\Diluc\Documents\杂物堆放\角色卡编辑器\需求文档.md`
+- **参考范例**: `c:\Users\Diluc\Documents\杂物堆放\Mine\`
 
 ## 技术栈
 
@@ -38,7 +39,8 @@
 
 - 角色卡作者：辣白菜 (labaicai0969)
 - 用户自己的角色卡存放于：`c:\Users\Diluc\Documents\杂物堆放\卡\`
-- 用户自己的预设存放于：`c:\Users\Diluc\Documents\杂物堆放\卡\新月观察者 留痕\`
+- 用户自己的预设存放于：`c:\Users\Diluc\Documents\杂物堆放\Mine\白沙织梦\`、`c:\Users\Diluc\Documents\杂物堆放\Mine\新月观察者 留痕\`
+- 参考范例：`c:\Users\Diluc\Documents\杂物堆放\Mine\`
 
 ## 部署
 

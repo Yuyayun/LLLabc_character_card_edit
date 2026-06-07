@@ -31,7 +31,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               to="/"
               className="font-bold text-sm sm:text-lg text-primary tracking-tight shrink-0"
             >
-              CCE
+              Space Station
             </Link>
             <nav className="flex items-center gap-0.5">
               {navItems.map((item) => {

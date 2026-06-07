@@ -34,14 +34,21 @@ export function PresetEditor() {
   // 从 prompts + prompt_order 初始化列表顺序
   function buildOrder(p: Preset): PresetPromptOrder[] {
     const raw = p.extensions?.prompt_order
-    // 酒馆格式: [{ character_id: number, order: [{identifier, enabled}] }]
     if (Array.isArray(raw) && raw.length > 0) {
-      const first = raw[0] as Record<string, unknown>
-      if (first.order && Array.isArray(first.order)) {
-        return first.order as PresetPromptOrder[]
+      // 酒馆格式: [{ character_id: number, order: [{identifier, enabled}] }]
+      // 可能有多个角色（默认模板 100000 + 自定义角色 100001+）
+      // 取条目数最多的角色（即用户实际绑定的角色），而非默认模板
+      let best: { identifier: string; enabled: boolean }[] | null = null
+      for (const entry of raw) {
+        const e = entry as Record<string, unknown>
+        if (Array.isArray(e.order) && e.order.length > (best?.length ?? 0)) {
+          best = e.order as { identifier: string; enabled: boolean }[]
+        }
       }
+      if (best && best.length > 0) return best
       // 也可能是平铺格式 [{identifier, enabled}]
-      if (first.identifier) {
+      const first = raw[0] as Record<string, unknown>
+      if (first.identifier !== undefined) {
         return raw as unknown as PresetPromptOrder[]
       }
     }
