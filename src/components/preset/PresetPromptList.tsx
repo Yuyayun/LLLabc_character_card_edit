@@ -91,7 +91,7 @@ export function PresetPromptList({
 
   return (
     <ul className="space-y-1">
-      {indexed.map(({ order: o, origIndex }, i) => {
+      {indexed.map(({ order: o, origIndex }) => {
         const prompt = promptMap.get(o.identifier)
         if (!prompt) return null
         const isDrag = dragIndex === origIndex
