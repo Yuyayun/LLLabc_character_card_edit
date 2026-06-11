@@ -100,6 +100,7 @@ export function PresetEditor() {
     }
     try {
       await db.presets.put(toSave)
+      handleChange(toSave)
       toast.success("已保存")
       if (isNew && toSave.id) {
         navigate(`/preset/${toSave.id}`, { replace: true })
