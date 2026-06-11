@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useRef, useCallback } from "react"
 import type { PresetPrompt, PresetPromptOrder } from "@/types"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,9 @@ interface Props {
   search: string
 }
 
+const AUTO_SCROLL_ZONE = 60 // 距离边缘多少 px 开始自动滚动
+const AUTO_SCROLL_SPEED = 8 // 每次滚动像素数
+
 export function PresetPromptList({
   order,
   prompts,
@@ -29,10 +32,11 @@ export function PresetPromptList({
 }: Props) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const scrollRafRef = useRef<number | null>(null)
 
   const promptMap = new Map(prompts.map((p) => [p.identifier, p]))
 
-  // 过滤后的列表，附带原始索引用于移动操作
   const indexed = order
     .map((o, i) => ({ order: o, origIndex: i }))
     .filter(({ order: o }) => {
@@ -42,7 +46,6 @@ export function PresetPromptList({
       return p.name.toLowerCase().includes(search.toLowerCase())
     })
 
-  // 移动操作：根据原始索引在 order 数组中交换
   function moveUp(origIndex: number) {
     if (origIndex <= 0) return
     const updated = [...order]
@@ -57,6 +60,41 @@ export function PresetPromptList({
     onReorder(updated)
   }
 
+  function stopAutoScroll() {
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current)
+      scrollRafRef.current = null
+    }
+  }
+
+  const autoScroll = useCallback((clientY: number) => {
+    const list = listRef.current
+    if (!list) return
+    const rect = list.getBoundingClientRect()
+    const top = rect.top
+    const bottom = rect.bottom
+
+    stopAutoScroll()
+
+    const scrollStep = () => {
+      const currentRect = list.getBoundingClientRect()
+      const distFromTop = clientY - currentRect.top
+      const distFromBottom = currentRect.bottom - clientY
+
+      if (distFromTop < AUTO_SCROLL_ZONE && distFromTop > 0 && list.scrollTop > 0) {
+        list.scrollTop -= AUTO_SCROLL_SPEED
+        scrollRafRef.current = requestAnimationFrame(scrollStep)
+      } else if (distFromBottom < AUTO_SCROLL_ZONE && distFromBottom > 0 && list.scrollTop < list.scrollHeight - list.clientHeight) {
+        list.scrollTop += AUTO_SCROLL_SPEED
+        scrollRafRef.current = requestAnimationFrame(scrollStep)
+      }
+    }
+
+    if (clientY - top < AUTO_SCROLL_ZONE || bottom - clientY < AUTO_SCROLL_ZONE) {
+      scrollRafRef.current = requestAnimationFrame(scrollStep)
+    }
+  }, [])
+
   function handleDragStart(index: number) {
     setDragIndex(index)
   }
@@ -64,11 +102,13 @@ export function PresetPromptList({
   function handleDragEnd() {
     setDragIndex(null)
     setDragOverIndex(null)
+    stopAutoScroll()
   }
 
   function handleDragOver(e: React.DragEvent, index: number) {
     e.preventDefault()
     setDragOverIndex(index)
+    autoScroll(e.clientY)
   }
 
   function handleDrop(targetOrigIndex: number) {
@@ -79,6 +119,7 @@ export function PresetPromptList({
     onReorder(updated)
     setDragIndex(null)
     setDragOverIndex(null)
+    stopAutoScroll()
   }
 
   if (indexed.length === 0) {
@@ -90,7 +131,7 @@ export function PresetPromptList({
   }
 
   return (
-    <ul className="space-y-1">
+    <ul ref={listRef} className="space-y-1 max-h-[60vh] overflow-y-auto">
       {indexed.map(({ order: o, origIndex }) => {
         const prompt = promptMap.get(o.identifier)
         if (!prompt) return null

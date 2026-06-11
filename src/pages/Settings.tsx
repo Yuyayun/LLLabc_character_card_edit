@@ -7,33 +7,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { db } from "@/lib/db";
-import type { CloudSyncConfig } from "@/types";
 import {
+  checkConnection,
+  createGist,
+  downloadFromGist,
   exportAllData,
   importAllData,
-  verifyToken,
-  createGist,
   uploadToGist,
-  downloadFromGist,
-  checkConnection,
+  verifyToken,
 } from "@/lib/cloudSync";
-import { verifyKey, isPresetUnlocked, clearUnlock } from "@/lib/lockKey";
+import { db } from "@/lib/db";
+import { clearUnlock, isPresetUnlocked, verifyKey } from "@/lib/lockKey";
+import { cn } from "@/lib/utils";
+import type { CloudSyncConfig } from "@/types";
 import {
+  Check,
+  Cloud,
+  Download,
+  Loader2,
+  Lock,
   Moon,
   PaintBucket,
   Sun,
-  Cloud,
-  Upload,
-  Download,
-  Check,
-  X,
-  Loader2,
-  Lock,
   Unlock,
+  Upload,
+  X,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const accentKeys = Object.keys(accentDefs) as AccentColor[];
@@ -58,7 +58,7 @@ function createDefaultConfig(): CloudSyncConfig {
     autoUpload: false,
     lastSyncAt: null,
     conflictStrategy: "force_push",
-  }
+  };
 }
 
 export function Settings() {
@@ -69,124 +69,137 @@ export function Settings() {
   const [config, setConfig] = useState<CloudSyncConfig>(createDefaultConfig());
   const [configLoaded, setConfigLoaded] = useState(false);
   const [tokenCheck, setTokenCheck] = useState<{
-    valid: boolean
-    hasGistScope: boolean
-    scopes: string[]
-    user: string | null
-  } | null>(null)
-  const [verifying, setVerifying] = useState(false)
+    valid: boolean;
+    hasGistScope: boolean;
+    scopes: string[];
+    user: string | null;
+  } | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [connected, setConnected] = useState<boolean | null>(null);
 
   // 预设解锁状态
-  const [presetUnlocked, setPresetUnlocked] = useState<boolean | null>(null)
-  const [keyInput, setKeyInput] = useState("")
-  const [keyChecking, setKeyChecking] = useState(false)
+  const [presetUnlocked, setPresetUnlocked] = useState<boolean | null>(null);
+  const [keyInput, setKeyInput] = useState("");
+  const [keyChecking, setKeyChecking] = useState(false);
 
-  const SYNC_ID = "cloud_sync" as const
+  const SYNC_ID = "cloud_sync" as const;
 
   // 加载云同步配置
   useEffect(() => {
     db.cloudSync.get(SYNC_ID).then((saved) => {
-      if (saved) setConfig(saved)
-      setConfigLoaded(true)
-    })
-  }, [])
+      if (saved) setConfig(saved);
+      setConfigLoaded(true);
+    });
+  }, []);
 
   // 切换 section 时检测连接
   useEffect(() => {
-    if (section === "cloud" && config.enabled && config.gistId && config.githubToken) {
-      checkConnection().then(setConnected)
+    if (
+      section === "cloud" &&
+      config.enabled &&
+      config.gistId &&
+      config.githubToken
+    ) {
+      checkConnection().then(setConnected);
     }
-  }, [section, config.enabled, config.gistId, config.githubToken])
+  }, [section, config.enabled, config.gistId, config.githubToken]);
 
   // 检查预设解锁状态
   useEffect(() => {
-    isPresetUnlocked().then(setPresetUnlocked)
-  }, [section])
+    isPresetUnlocked().then(setPresetUnlocked);
+  }, [section]);
 
   function updateConfig(patch: Partial<CloudSyncConfig>) {
     setConfig((prev) => {
-      const next = { ...prev, ...patch }
-      db.cloudSync.put(next)
-      return next
-    })
+      const next = { ...prev, ...patch };
+      db.cloudSync.put(next);
+      return next;
+    });
   }
 
   async function handleVerify() {
-    if (!config.githubToken) return
-    setVerifying(true)
-    setTokenCheck(null)
+    if (!config.githubToken) return;
+    setVerifying(true);
+    setTokenCheck(null);
     try {
-      const result = await verifyToken(config.githubToken)
-      setTokenCheck(result)
+      const result = await verifyToken(config.githubToken);
+      setTokenCheck(result);
       if (!result.valid) {
-        toast.error("Token 无效，请检查是否正确")
+        toast.error("Token 无效，请检查是否正确");
       } else if (!result.hasGistScope) {
-        toast.error(`Token 有效但缺少 gist 权限（当前权限: ${result.scopes.length ? result.scopes.join(", ") : "无"}）。请重新创建 Token 并勾选 gist scope。`)
+        toast.error(
+          `Token 有效但缺少 gist 权限（当前权限: ${result.scopes.length ? result.scopes.join(", ") : "无"}）。请重新创建 Token 并勾选 gist scope。`,
+        );
       } else {
-        toast.success(`Token 验证成功，已登录 ${result.user}`)
+        toast.success(`Token 验证成功，已登录 ${result.user}`);
       }
     } catch {
-      setTokenCheck({ valid: false, hasGistScope: false, scopes: [], user: null })
-      toast.error("验证失败，请检查网络连接")
+      setTokenCheck({
+        valid: false,
+        hasGistScope: false,
+        scopes: [],
+        user: null,
+      });
+      toast.error("验证失败，请检查网络连接");
     } finally {
-      setVerifying(false)
+      setVerifying(false);
     }
   }
 
   async function handleCreateGist() {
     if (!config.githubToken || !tokenCheck?.hasGistScope) {
-      toast.error("请先验证 Token 并确保拥有 gist 权限")
-      return
+      toast.error("请先验证 Token 并确保拥有 gist 权限");
+      return;
     }
-    setCreating(true)
+    setCreating(true);
     try {
-      const data = await exportAllData()
-      const gistId = await createGist(config.githubToken, data)
-      updateConfig({ gistId, lastSyncAt: new Date() })
-      toast.success("Gist 已创建，数据已上传")
+      const data = await exportAllData();
+      const gistId = await createGist(config.githubToken, data);
+      updateConfig({ gistId, lastSyncAt: new Date() });
+      toast.success("Gist 已创建，数据已上传");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "创建 Gist 失败")
+      toast.error(e instanceof Error ? e.message : "创建 Gist 失败");
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
   }
 
   async function handleUpload() {
     if (!config.gistId || !config.githubToken) {
-      toast.error("请先配置 Token 和 Gist ID")
-      return
+      toast.error("请先配置 Token 和 Gist ID");
+      return;
     }
-    setUploading(true)
+    setUploading(true);
     try {
-      await uploadToGist(config)
-      toast.success("已上传到云端")
+      await uploadToGist(config);
+      toast.success("已上传到云端");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "上传失败")
+      toast.error(e instanceof Error ? e.message : "上传失败");
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
   }
 
   async function handleDownload() {
     if (!config.gistId || !config.githubToken) {
-      toast.error("请先配置 Token 和 Gist ID")
-      return
+      toast.error("请先配置 Token 和 Gist ID");
+      return;
     }
-    if (!confirm("云端下载将覆盖本地全部数据，建议先手动备份。确认继续？")) return
-    setDownloading(true)
+    if (!confirm("云端下载将覆盖本地全部数据，建议先手动备份。确认继续？"))
+      return;
+    setDownloading(true);
     try {
-      const data = await downloadFromGist(config)
-      await importAllData(data)
-      updateConfig({ lastSyncAt: new Date() })
-      toast.success("已从云端同步数据")
+      const data = await downloadFromGist(config);
+      await importAllData(data);
+      updateConfig({ lastSyncAt: new Date() });
+      toast.success("已从云端同步数据");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "下载失败")
+      toast.error(e instanceof Error ? e.message : "下载失败");
     } finally {
-      setDownloading(false)
+      setDownloading(false);
     }
   }
 
@@ -333,9 +346,7 @@ export function Settings() {
           </CardHeader>
           <CardContent className="space-y-3">
             {presetUnlocked === null ? (
-              <p className="text-xs text-muted-foreground">
-                正在检查状态...
-              </p>
+              <p className="text-xs text-muted-foreground">正在检查状态...</p>
             ) : presetUnlocked ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-md">
@@ -354,9 +365,9 @@ export function Settings() {
                   size="sm"
                   className="h-7 text-[11px] text-muted-foreground"
                   onClick={async () => {
-                    await clearUnlock()
-                    setPresetUnlocked(false)
-                    toast.success("已锁定预设编辑器")
+                    await clearUnlock();
+                    setPresetUnlocked(false);
+                    toast.success("已锁定预设编辑器");
                   }}
                 >
                   清除解锁状态
@@ -371,7 +382,8 @@ export function Settings() {
                       预设编辑器已锁定
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      输入封锁 Key 以解锁预设编辑功能。如需获取 Key，请联系开发者。
+                      输入封锁 Key 以解锁预设编辑功能。如需获取
+                      Key，请联系开发者。
                     </p>
                   </div>
                 </div>
@@ -383,16 +395,16 @@ export function Settings() {
                     onChange={(e) => setKeyInput(e.target.value)}
                     onKeyDown={async (e) => {
                       if (e.key === "Enter") {
-                        setKeyChecking(true)
-                        const ok = await verifyKey(keyInput)
+                        setKeyChecking(true);
+                        const ok = await verifyKey(keyInput);
                         if (ok) {
-                          setPresetUnlocked(true)
-                          toast.success("预设编辑器已解锁！")
+                          setPresetUnlocked(true);
+                          toast.success("预设编辑器已解锁！");
                         } else {
-                          toast.error("Key 不正确")
+                          toast.error("Key 不正确");
                         }
-                        setKeyInput("")
-                        setKeyChecking(false)
+                        setKeyInput("");
+                        setKeyChecking(false);
                       }
                     }}
                     className="h-8 text-xs flex-1"
@@ -403,16 +415,16 @@ export function Settings() {
                     className="h-8 text-xs shrink-0"
                     disabled={keyChecking || !keyInput.trim()}
                     onClick={async () => {
-                      setKeyChecking(true)
-                      const ok = await verifyKey(keyInput)
+                      setKeyChecking(true);
+                      const ok = await verifyKey(keyInput);
                       if (ok) {
-                        setPresetUnlocked(true)
-                        toast.success("预设编辑器已解锁！")
+                        setPresetUnlocked(true);
+                        toast.success("预设编辑器已解锁！");
                       } else {
-                        toast.error("Key 不正确")
+                        toast.error("Key 不正确");
                       }
-                      setKeyInput("")
-                      setKeyChecking(false)
+                      setKeyInput("");
+                      setKeyChecking(false);
                     }}
                   >
                     {keyChecking ? (
@@ -467,14 +479,16 @@ export function Settings() {
                     <>
                       {/* 连接状态 */}
                       {config.gistId && config.githubToken && (
-                        <div className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-md text-xs",
-                          connected === true
-                            ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
-                            : connected === false
-                              ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"
-                              : "bg-muted/50 text-muted-foreground"
-                        )}>
+                        <div
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-md text-xs",
+                            connected === true
+                              ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
+                              : connected === false
+                                ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"
+                                : "bg-muted/50 text-muted-foreground",
+                          )}
+                        >
                           {connected === true ? (
                             <Check className="h-3.5 w-3.5 shrink-0" />
                           ) : connected === false ? (
@@ -491,10 +505,16 @@ export function Settings() {
                           </span>
                           {config.lastSyncAt && (
                             <span className="ml-auto text-[10px] opacity-70">
-                              上次同步：{new Date(config.lastSyncAt).toLocaleString("zh-CN", {
-                                month: "numeric", day: "numeric",
-                                hour: "2-digit", minute: "2-digit",
-                              })}
+                              上次同步：
+                              {new Date(config.lastSyncAt).toLocaleString(
+                                "zh-CN",
+                                {
+                                  month: "numeric",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
                             </span>
                           )}
                         </div>
@@ -502,15 +522,17 @@ export function Settings() {
 
                       {/* GitHub Token */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium">GitHub Token</label>
+                        <label className="text-xs font-medium">
+                          GitHub Token
+                        </label>
                         <div className="flex gap-2">
                           <Input
                             type="password"
                             placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                             value={config.githubToken}
                             onChange={(e) => {
-                              updateConfig({ githubToken: e.target.value })
-                              setTokenCheck(null)
+                              updateConfig({ githubToken: e.target.value });
+                              setTokenCheck(null);
                             }}
                             className="h-8 text-xs font-mono flex-1"
                           />
@@ -545,14 +567,16 @@ export function Settings() {
                           ，选择 <strong>gist</strong> scope
                         </p>
                         {tokenCheck && (
-                          <p className={cn(
-                            "text-[10px]",
-                            tokenCheck.hasGistScope
-                              ? "text-emerald-600"
-                              : tokenCheck.valid
-                                ? "text-amber-600"
-                                : "text-red-600"
-                          )}>
+                          <p
+                            className={cn(
+                              "text-[10px]",
+                              tokenCheck.hasGistScope
+                                ? "text-emerald-600"
+                                : tokenCheck.valid
+                                  ? "text-amber-600"
+                                  : "text-red-600",
+                            )}
+                          >
                             {tokenCheck.hasGistScope
                               ? `✓ 权限正常 (${tokenCheck.scopes.join(", ")})`
                               : tokenCheck.valid
@@ -571,7 +595,9 @@ export function Settings() {
                             type="text"
                             placeholder="32 位 Gist ID"
                             value={config.gistId}
-                            onChange={(e) => updateConfig({ gistId: e.target.value })}
+                            onChange={(e) =>
+                              updateConfig({ gistId: e.target.value })
+                            }
                             className="h-8 text-xs font-mono flex-1"
                           />
                           <Button
@@ -589,7 +615,8 @@ export function Settings() {
                           </Button>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                          点击「创建」自动创建新 Gist 并上传当前数据；也可手动填入已有 Gist ID
+                          点击「创建」自动创建新 Gist
+                          并上传当前数据；也可手动填入已有 Gist ID
                         </p>
                       </div>
 
@@ -603,7 +630,9 @@ export function Settings() {
                         </div>
                         <Switch
                           checked={config.autoUpload}
-                          onCheckedChange={(v) => updateConfig({ autoUpload: v })}
+                          onCheckedChange={(v) =>
+                            updateConfig({ autoUpload: v })
+                          }
                           disabled={!config.gistId || !config.githubToken}
                           className="shrink-0"
                         />
@@ -616,7 +645,9 @@ export function Settings() {
                           size="sm"
                           className="flex-1 h-8 text-xs"
                           onClick={handleUpload}
-                          disabled={!config.gistId || !config.githubToken || uploading}
+                          disabled={
+                            !config.gistId || !config.githubToken || uploading
+                          }
                         >
                           {uploading ? (
                             <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
@@ -630,7 +661,9 @@ export function Settings() {
                           size="sm"
                           className="flex-1 h-8 text-xs"
                           onClick={handleDownload}
-                          disabled={!config.gistId || !config.githubToken || downloading}
+                          disabled={
+                            !config.gistId || !config.githubToken || downloading
+                          }
                         >
                           {downloading ? (
                             <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
@@ -665,7 +698,7 @@ export function Settings() {
                   v1.1.0-hotfix2
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  2026-06-07
+                  2026-06-11
                 </span>
               </div>
               <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
@@ -700,9 +733,13 @@ export function Settings() {
                 </span>
               </div>
               <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
-                <li>新增预设编辑器：支持采样参数、格式化模板、提示词管理（列表+池+拖拽排序）</li>
+                <li>
+                  新增预设编辑器：支持采样参数、格式化模板、提示词管理（列表+池+拖拽排序）
+                </li>
                 <li>支持导入/导出酒馆格式预设 JSON（名称 emoji 原样保留）</li>
-                <li>封锁 Key 访问控制：预设模块默认锁定，需在设置页输入 Key 解锁</li>
+                <li>
+                  封锁 Key 访问控制：预设模块默认锁定，需在设置页输入 Key 解锁
+                </li>
               </ul>
             </div>
 
@@ -716,7 +753,10 @@ export function Settings() {
                 </span>
               </div>
               <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
-                <li>云同步下载大幅提速：gzip 压缩 + 移除冗余请求，数据体积减少 80%+</li>
+                <li>
+                  云同步下载大幅提速：gzip 压缩 + 移除冗余请求，数据体积减少
+                  80%+
+                </li>
                 <li>自动上传新增进度提示："正在同步…"→"云端同步完成"</li>
                 <li>PWA 新版本提醒：检测到更新后弹窗提示刷新</li>
               </ul>
@@ -733,11 +773,10 @@ export function Settings() {
               </div>
               <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
                 <li>
-                  新增云同步功能：通过 GitHub Gist 实现跨设备数据同步，支持手动上传/下载和保存时自动上传
+                  新增云同步功能：通过 GitHub Gist
+                  实现跨设备数据同步，支持手动上传/下载和保存时自动上传
                 </li>
-                <li>
-                  备份恢复现已包含灵感笔记（memos），之前缺失该表
-                </li>
+                <li>备份恢复现已包含灵感笔记（memos），之前缺失该表</li>
               </ul>
             </div>
 
