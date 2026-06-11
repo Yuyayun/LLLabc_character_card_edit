@@ -36,19 +36,18 @@ export function PresetEditor() {
     const raw = p.extensions?.prompt_order
     if (Array.isArray(raw) && raw.length > 0) {
       // 酒馆格式: [{ character_id: number, order: [{identifier, enabled}] }]
-      // 可能有多个角色（默认模板 100000 + 自定义角色 100001+）
-      // 取条目数最多的角色（即用户实际绑定的角色），而非默认模板
-      let best: { identifier: string; enabled: boolean }[] | null = null
-      for (const entry of raw) {
-        const e = entry as Record<string, unknown>
-        if (Array.isArray(e.order) && e.order.length > (best?.length ?? 0)) {
-          best = e.order as { identifier: string; enabled: boolean }[]
-        }
+      // character_id 100000 = PromptManager 默认模板（永远不应选中）
+      // character_id 100001+ = OpenAI/Chat Completion 实际角色（应优先选）
+      // 优先取非 100000 的角色，找不到再 fallback
+      const preferred = raw.find(
+        (e) => (e as Record<string, unknown>).character_id !== 100000
+      )
+      const target = (preferred ?? raw[0]) as Record<string, unknown>
+      if (Array.isArray(target.order) && target.order.length > 0) {
+        return target.order as PresetPromptOrder[]
       }
-      if (best && best.length > 0) return best
       // 也可能是平铺格式 [{identifier, enabled}]
-      const first = raw[0] as Record<string, unknown>
-      if (first.identifier !== undefined) {
+      if (target.identifier !== undefined) {
         return raw as unknown as PresetPromptOrder[]
       }
     }
@@ -86,11 +85,16 @@ export function PresetEditor() {
 
   async function handleSave() {
     if (!preset) return
+    // 包装为酒馆格式: [{ character_id, order: [...] }]
+    const promptOrderWrapped = order.length > 0
+      ? [{ character_id: preset.extensions?.preferred_char_id as number ?? 100001, order }]
+      : []
     const toSave: Preset = {
       ...preset,
       extensions: {
         ...(preset.extensions ?? {}),
-        prompt_order: order,
+        prompt_order: promptOrderWrapped,
+        preferred_char_id: 100001,
       },
       updated_at: new Date(),
     }

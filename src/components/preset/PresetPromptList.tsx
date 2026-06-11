@@ -2,7 +2,7 @@ import { useState } from "react"
 import type { PresetPrompt, PresetPromptOrder } from "@/types"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { GripVertical, Pencil, Unlink } from "lucide-react"
+import { GripVertical, Pencil, Unlink, ChevronUp, ChevronDown } from "lucide-react"
 
 interface Props {
   order: PresetPromptOrder[]
@@ -32,12 +32,30 @@ export function PresetPromptList({
 
   const promptMap = new Map(prompts.map((p) => [p.identifier, p]))
 
-  const filtered = order.filter((o) => {
-    if (!search) return true
-    const p = promptMap.get(o.identifier)
-    if (!p) return false
-    return p.name.toLowerCase().includes(search.toLowerCase())
-  })
+  // 过滤后的列表，附带原始索引用于移动操作
+  const indexed = order
+    .map((o, i) => ({ order: o, origIndex: i }))
+    .filter(({ order: o }) => {
+      if (!search) return true
+      const p = promptMap.get(o.identifier)
+      if (!p) return false
+      return p.name.toLowerCase().includes(search.toLowerCase())
+    })
+
+  // 移动操作：根据原始索引在 order 数组中交换
+  function moveUp(origIndex: number) {
+    if (origIndex <= 0) return
+    const updated = [...order]
+    ;[updated[origIndex - 1], updated[origIndex]] = [updated[origIndex], updated[origIndex - 1]]
+    onReorder(updated)
+  }
+
+  function moveDown(origIndex: number) {
+    if (origIndex >= order.length - 1) return
+    const updated = [...order]
+    ;[updated[origIndex + 1], updated[origIndex]] = [updated[origIndex], updated[origIndex + 1]]
+    onReorder(updated)
+  }
 
   function handleDragStart(index: number) {
     setDragIndex(index)
@@ -53,17 +71,17 @@ export function PresetPromptList({
     setDragOverIndex(index)
   }
 
-  function handleDrop(index: number) {
-    if (dragIndex === null || dragIndex === index) return
+  function handleDrop(targetOrigIndex: number) {
+    if (dragIndex === null || dragIndex === targetOrigIndex) return
     const updated = [...order]
     const [moved] = updated.splice(dragIndex, 1)
-    updated.splice(index, 0, moved)
+    updated.splice(targetOrigIndex, 0, moved)
     onReorder(updated)
     setDragIndex(null)
     setDragOverIndex(null)
   }
 
-  if (filtered.length === 0) {
+  if (indexed.length === 0) {
     return (
       <p className="text-xs text-muted-foreground py-8 text-center">
         {search ? "没有匹配的提示词" : "列表为空，从池中添加条目"}
@@ -73,27 +91,48 @@ export function PresetPromptList({
 
   return (
     <ul className="space-y-1">
-      {filtered.map((o, i) => {
+      {indexed.map(({ order: o, origIndex }, i) => {
         const prompt = promptMap.get(o.identifier)
         if (!prompt) return null
-        const isDrag = dragIndex === i
-        const isOver = dragOverIndex === i
+        const isDrag = dragIndex === origIndex
+        const isOver = dragOverIndex === origIndex
+        const isFirst = origIndex === 0
+        const isLast = origIndex === order.length - 1
+
         return (
           <li
             key={o.identifier}
             draggable
-            onDragStart={() => handleDragStart(i)}
+            onDragStart={() => handleDragStart(origIndex)}
             onDragEnd={handleDragEnd}
-            onDragOver={(e) => handleDragOver(e, i)}
-            onDrop={() => handleDrop(i)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-md border transition-all min-h-[44px] ${
+            onDragOver={(e) => handleDragOver(e, origIndex)}
+            onDrop={() => handleDrop(origIndex)}
+            className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-md border transition-all min-h-[44px] ${
               isDrag ? "opacity-40" : ""
             } ${isOver ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:bg-muted/50"} ${
               !o.enabled ? "opacity-50" : ""
             }`}
           >
-            {/* 拖拽手柄 */}
-            <span className="cursor-grab text-muted-foreground shrink-0">
+            {/* 上下移动（手机友好） */}
+            <span className="flex flex-col gap-0 shrink-0">
+              <button
+                className="text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:cursor-default leading-none"
+                disabled={isFirst}
+                onClick={() => moveUp(origIndex)}
+              >
+                <ChevronUp className="h-3 w-3" />
+              </button>
+              <button
+                className="text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:cursor-default leading-none"
+                disabled={isLast}
+                onClick={() => moveDown(origIndex)}
+              >
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </span>
+
+            {/* 拖拽手柄（桌面端） */}
+            <span className="cursor-grab text-muted-foreground shrink-0 hidden sm:block">
               <GripVertical className="h-3.5 w-3.5" />
             </span>
 

@@ -662,6 +662,21 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.0-hotfix2
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-06-07
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>修复导出预设 prompt_order 格式与酒馆不兼容的问题</li>
+                <li>手机端提示词列表新增上下移动按钮</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.1.0-hotfix
                 </span>
                 <span className="text-xs text-muted-foreground">
