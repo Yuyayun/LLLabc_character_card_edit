@@ -1,7 +1,7 @@
 import { useState } from "react"
 import type { PresetPrompt } from "@/types"
 import { Button } from "@/components/ui/button"
-import { Link, Plus, Trash2, Upload, Download, RotateCcw } from "lucide-react"
+import { ArrowRightToLine, Link, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   orderIdentifiers: string[]
   onInsertFromPool: (identifier: string) => void
   onNewPrompt: () => void
+  onMoveToPosition: () => void
   selectedIds: Set<string>
 }
 
@@ -17,6 +18,7 @@ export function PresetToolbar({
   orderIdentifiers,
   onInsertFromPool,
   onNewPrompt,
+  onMoveToPosition,
   selectedIds,
 }: Props) {
   const [selectedPoolId, setSelectedPoolId] = useState("")
@@ -63,6 +65,17 @@ export function PresetToolbar({
         插入
       </Button>
 
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 text-xs"
+        disabled={!selectedPoolId}
+        onClick={onMoveToPosition}
+      >
+        <ArrowRightToLine className="h-3.5 w-3.5 mr-1" />
+        移动到
+      </Button>
+
       {/* 分隔 */}
       <span className="w-px h-5 bg-border mx-0.5" />
 
@@ -83,20 +96,6 @@ export function PresetToolbar({
       )}
 
       <span className="flex-1" />
-
-      {/* 导入/导出子集（Phase 4）*/}
-      <Button variant="ghost" size="sm" className="h-8 text-xs" disabled>
-        <Upload className="h-3.5 w-3.5 mr-1" />
-        导入子集
-      </Button>
-      <Button variant="ghost" size="sm" className="h-8 text-xs" disabled>
-        <Download className="h-3.5 w-3.5 mr-1" />
-        导出子集
-      </Button>
-      <Button variant="ghost" size="sm" className="h-8 text-xs" disabled>
-        <RotateCcw className="h-3.5 w-3.5 mr-1" />
-        重置
-      </Button>
     </div>
   )
 }

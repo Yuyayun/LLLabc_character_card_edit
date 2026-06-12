@@ -101,12 +101,12 @@ export function Presets() {
 
       {/* 搜索 */}
       <div className="relative mb-6 max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           placeholder="搜索预设..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-8 text-xs pl-8"
+          className="h-8 text-xs pl-9"
         />
       </div>
 
@@ -127,7 +127,7 @@ export function Presets() {
           {filtered.map((preset) => (
             <Card
               key={preset.id}
-              className="group cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all relative"
+              className="group cursor-pointer transition-all relative"
               onClick={() => navigate(`/preset/${preset.id}`)}
             >
               <CardContent className="p-4 flex flex-col items-center text-center gap-2">

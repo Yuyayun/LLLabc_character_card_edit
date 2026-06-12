@@ -18,28 +18,28 @@ export const accentDefs: Record<AccentColor, AccentDef> = {
   },
   sky: {
     label: "天蓝",
-    light: { primary: "#0ea5e9", ring: "#0ea5e9" },
-    dark: { primary: "#38bdf8", ring: "#38bdf8" },
+    light: { primary: "#0ea5e9", ring: "rgba(14, 165, 233, 0.3)" },
+    dark: { primary: "#38bdf8", ring: "rgba(56, 189, 248, 0.3)" },
   },
   emerald: {
     label: "翠绿",
-    light: { primary: "#10b981", ring: "#10b981" },
-    dark: { primary: "#34d399", ring: "#34d399" },
+    light: { primary: "#10b981", ring: "rgba(16, 185, 129, 0.3)" },
+    dark: { primary: "#34d399", ring: "rgba(52, 211, 153, 0.3)" },
   },
   rose: {
     label: "玫瑰",
-    light: { primary: "#f43f5e", ring: "#f43f5e" },
-    dark: { primary: "#fb7185", ring: "#fb7185" },
+    light: { primary: "#f43f5e", ring: "rgba(244, 63, 94, 0.3)" },
+    dark: { primary: "#fb7185", ring: "rgba(251, 113, 133, 0.3)" },
   },
   amber: {
     label: "琥珀",
-    light: { primary: "#f59e0b", ring: "#f59e0b" },
-    dark: { primary: "#fbbf24", ring: "#fbbf24" },
+    light: { primary: "#f59e0b", ring: "rgba(245, 158, 11, 0.3)" },
+    dark: { primary: "#fbbf24", ring: "rgba(251, 191, 36, 0.3)" },
   },
   slate: {
     label: "岩黑",
-    light: { primary: "#1e293b", ring: "#1e293b" },
-    dark: { primary: "#94a3b8", ring: "#94a3b8" },
+    light: { primary: "#334155", ring: "rgba(51, 65, 85, 0.3)" },
+    dark: { primary: "#cbd5e1", ring: "rgba(203, 213, 225, 0.3)" },
   },
 }
 

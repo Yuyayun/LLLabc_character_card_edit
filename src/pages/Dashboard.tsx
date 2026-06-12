@@ -207,7 +207,7 @@ export function Dashboard() {
           {filtered.map((card) => (
             <Card
               key={card.id}
-              className="group cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all relative"
+              className="group cursor-pointer transition-all relative"
             >
               <Link to={`/editor/${card.id}`}>
                 <CardContent className="p-3">

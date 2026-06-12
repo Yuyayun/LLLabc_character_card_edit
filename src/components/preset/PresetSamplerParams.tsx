@@ -69,7 +69,7 @@ export function PresetSamplerParams({ preset, onChange }: Props) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {FIELDS.map((f) => (
                 <div key={f.key} className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">
+                  <label className="text-xs text-muted-foreground">
                     {f.label}
                   </label>
                   <Input

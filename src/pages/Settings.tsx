@@ -204,7 +204,7 @@ export function Settings() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
       {/* 分段按钮导航 */}
       <div className="flex items-center gap-2 mb-6">
         <h1 className="text-xl sm:text-2xl font-bold mr-2">设置</h1>
@@ -692,6 +692,22 @@ export function Settings() {
             <CardTitle className="text-sm sm:text-base">更新日志</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.1
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-06-12
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>新增预设编辑器侧边栏与移动到指定位置功能</li>
+                <li>整体视觉升级：星点背景、光晕效果、主题过渡动画</li>
+                <li>全局样式统一与细节修复</li>
+              </ul>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">

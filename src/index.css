@@ -48,28 +48,35 @@
   --input: rgba(60, 60, 67, 0.12);
   --ring: rgba(0, 122, 255, 0.3);
   --radius: 0.85rem;
+
+  /* 光晕 */
+  --glow-primary: rgba(0, 122, 255, 0.15);
+  --glow-ambient: rgba(0, 122, 255, 0.04);
 }
 
 .dark {
-  --background: #000000;
+  --background: #08080a;
   --foreground: #f5f5f7;
-  --card: #1c1c1e;
+  --card: #1a1a1d;
   --card-foreground: #f5f5f7;
-  --popover: rgba(28, 28, 30, 0.75);
+  --popover: rgba(26, 26, 29, 0.8);
   --popover-foreground: #f5f5f7;
   --primary: #0a84ff;
   --primary-foreground: #ffffff;
-  --secondary: #2c2c2e;
+  --secondary: #28282c;
   --secondary-foreground: #f5f5f7;
-  --muted: #2c2c2e;
+  --muted: #28282c;
   --muted-foreground: #98989d;
-  --accent: #3a3a3c;
+  --accent: #34343a;
   --accent-foreground: #f5f5f7;
   --destructive: #ff453a;
   --destructive-foreground: #ffffff;
-  --border: rgba(84, 84, 88, 0.65);
-  --input: rgba(84, 84, 88, 0.65);
+  --border: rgba(84, 84, 88, 0.5);
+  --input: rgba(84, 84, 88, 0.45);
   --ring: rgba(10, 132, 255, 0.3);
+
+  --glow-primary: rgba(10, 132, 255, 0.18);
+  --glow-ambient: rgba(10, 132, 255, 0.05);
 }
 
 /* ========== 全局基础 ========== */
@@ -95,26 +102,52 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 空间站背景纹理 — 极淡的星点噪点 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(0.5px 0.5px at 10% 15%, rgba(0, 122, 255, 0.15), transparent),
+    radial-gradient(0.5px 0.5px at 25% 45%, rgba(0, 122, 255, 0.1), transparent),
+    radial-gradient(1px 1px at 40% 10%, rgba(0, 122, 255, 0.12), transparent),
+    radial-gradient(0.5px 0.5px at 55% 70%, rgba(0, 122, 255, 0.1), transparent),
+    radial-gradient(1px 1px at 70% 30%, rgba(0, 122, 255, 0.08), transparent),
+    radial-gradient(0.5px 0.5px at 85% 55%, rgba(0, 122, 255, 0.12), transparent),
+    radial-gradient(0.5px 0.5px at 15% 80%, rgba(255, 179, 64, 0.06), transparent),
+    radial-gradient(1px 1px at 60% 90%, rgba(0, 122, 255, 0.08), transparent),
+    radial-gradient(0.5px 0.5px at 90% 20%, rgba(255, 179, 64, 0.05), transparent);
+  opacity: 0.6;
+}
+.dark body::before {
+  opacity: 1;
+}
+
 /* ========== 风格覆写 ========== */
 
-/* 卡片悬浮阴影 */
+/* 卡片 — 悬浮光晕 */
 .bg-card {
   box-shadow:
-    0 4px 24px -8px rgba(0, 0, 0, 0.05),
-    0 1px 3px rgba(0, 0, 0, 0.02);
+    0 2px 12px -4px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
   transition:
-    box-shadow 0.3s ease,
-    transform 0.3s ease;
+    box-shadow 0.35s ease,
+    transform 0.35s ease;
 }
 .dark .bg-card {
-  box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 2px 12px -4px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(84, 84, 88, 0.3);
 }
 
 /* 按钮点击缩放反馈 */
-button {
+button, label.cursor-pointer {
   transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
-button:active:not(:disabled) {
+button:active:not(:disabled),
+label.cursor-pointer:active:has(input[type="file"]) {
   transform: scale(0.96);
 }
 
@@ -128,29 +161,48 @@ input:focus,
 textarea:focus {
   box-shadow:
     0 0 0 3px var(--ring),
+    0 0 12px -2px var(--glow-primary),
+    inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+.dark input:focus,
+.dark textarea:focus {
+  box-shadow:
+    0 0 0 3px var(--ring),
+    0 0 20px -4px var(--glow-primary),
     inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
 }
 
-/* 顶栏毛玻璃效果 */
+/* 顶栏 — 浮空控制台 */
 header.sticky {
-  background-color: rgba(245, 245, 247, 0.72) !important;
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background-color: rgba(245, 245, 247, 0.7) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-bottom: 0.5px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 .dark header.sticky {
-  background-color: rgba(0, 0, 0, 0.72) !important;
+  background-color: rgba(8, 8, 10, 0.75) !important;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0 20px -10px var(--glow-primary);
 }
 
 /* 弹出层毛玻璃 */
 .bg-popover,
 [role="dialog"] div > div.bg-card {
   background-color: var(--popover) !important;
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
   box-shadow:
-    0 10px 40px -10px rgba(0, 0, 0, 0.1),
-    0 0 0 1px var(--border);
+    0 20px 60px -16px rgba(0, 0, 0, 0.12),
+    0 0 0 0.5px var(--border);
+}
+.dark .bg-popover,
+.dark [role="dialog"] div > div.bg-card {
+  box-shadow:
+    0 20px 60px -16px rgba(0, 0, 0, 0.5),
+    0 0 0 0.5px var(--border),
+    0 0 30px -10px var(--glow-primary);
 }
 
 /* Mac 风格细滚动条 */
@@ -162,45 +214,75 @@ header.sticky {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(134, 134, 139, 0.3);
+  background-color: rgba(134, 134, 139, 0.25);
   border-radius: 9999px;
   border: 2px solid var(--background);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(134, 134, 139, 0.5);
+  background-color: rgba(134, 134, 139, 0.45);
+}
+
+/* Firefox 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(134, 134, 139, 0.25) transparent;
 }
 
 /* 首页角色卡片浮起动效 */
 .grid > .group.relative {
   background-color: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border: 0.5px solid rgba(0, 0, 0, 0.05);
   border-radius: 14px;
   box-shadow:
-    0 4px 16px -4px rgba(0, 0, 0, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.02);
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    0 2px 8px -2px rgba(0, 0, 0, 0.03),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
 }
 .grid > .group.relative:hover {
   box-shadow:
-    0 16px 32px -8px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.04);
+    0 20px 40px -12px rgba(0, 0, 0, 0.1),
+    0 0 0 0.5px var(--primary),
+    0 0 24px -6px var(--glow-primary);
   transform: translateY(-2px);
 }
 .grid > .group.relative .bg-muted {
   background-color: #f7f7f9;
 }
+.grid > .group.relative:active {
+  transform: translateY(0);
+}
 
 /* 暗色模式卡片适配 */
 .dark .grid > .group.relative {
-  background-color: #1c1c1e;
-  border-color: rgba(84, 84, 88, 0.4);
-  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.3);
+  background-color: #1c1c1f;
+  border-color: rgba(84, 84, 88, 0.25);
+  box-shadow:
+    0 2px 12px -4px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(84, 84, 88, 0.15);
 }
 .dark .grid > .group.relative:hover {
   box-shadow:
-    0 16px 32px -8px rgba(0, 0, 0, 0.5),
-    0 2px 8px rgba(0, 0, 0, 0.2);
+    0 20px 40px -12px rgba(0, 0, 0, 0.6),
+    0 0 0 0.5px var(--primary),
+    0 0 30px -8px var(--glow-primary);
 }
 .dark .grid > .group.relative .bg-muted {
-  background-color: #2c2c2e;
+  background-color: #28282c;
+}
+
+/* ========== 主题切换过渡 ========== */
+
+:root {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ========== 触屏设备删除按钮常驻 ========== */
+
+@media (hover: none) and (pointer: coarse) {
+  .group:hover\:opacity-100 {
+    opacity: 0.7 !important;
+  }
 }

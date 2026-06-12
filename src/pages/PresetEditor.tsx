@@ -4,8 +4,14 @@ import { db } from "@/lib/db"
 import type { Preset, PresetPrompt, PresetPromptOrder } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Save, Download, Upload } from "lucide-react"
+import {
+  ArrowLeft, Save, Download, Upload,
+  PanelLeftClose, PanelLeft,
+  SlidersHorizontal, MessageSquareText,
+  ArrowRightToLine,
+} from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { createDefaultPreset } from "@/lib/helpers"
 import { exportPresetJSON, parsePresetJSON } from "@/lib/parser"
 import { PresetSamplerParams } from "@/components/preset/PresetSamplerParams"
@@ -14,6 +20,12 @@ import { PresetPromptList } from "@/components/preset/PresetPromptList"
 import { PresetPromptPool } from "@/components/preset/PresetPromptPool"
 import { PresetPromptEditor } from "@/components/preset/PresetPromptEditor"
 import { PresetToolbar } from "@/components/preset/PresetToolbar"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export function PresetEditor() {
   const { id } = useParams<{ id: string }>()
@@ -23,6 +35,9 @@ export function PresetEditor() {
   const [preset, setPreset] = useState<Preset | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // 侧边栏
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768)
+
   // prompt 管理状态
   const [promptTab, setPromptTab] = useState<"linked" | "pool">("linked")
   const [search, setSearch] = useState("")
@@ -31,14 +46,15 @@ export function PresetEditor() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [order, setOrder] = useState<PresetPromptOrder[]>([])
 
+  // 移动到 Dialog 状态
+  const [moveOpen, setMoveOpen] = useState(false)
+  const [moveSearch, setMoveSearch] = useState("")
+  const [moveSelectedId, setMoveSelectedId] = useState<string | null>(null)
+
   // 从 prompts + prompt_order 初始化列表顺序
   function buildOrder(p: Preset): PresetPromptOrder[] {
     const raw = p.extensions?.prompt_order
     if (Array.isArray(raw) && raw.length > 0) {
-      // 酒馆格式: [{ character_id: number, order: [{identifier, enabled}] }]
-      // character_id 100000 = PromptManager 默认模板（永远不应选中）
-      // character_id 100001+ = OpenAI/Chat Completion 实际角色（应优先选）
-      // 优先取非 100000 的角色，找不到再 fallback
       const preferred = raw.find(
         (e) => (e as Record<string, unknown>).character_id !== 100000
       )
@@ -46,12 +62,10 @@ export function PresetEditor() {
       if (Array.isArray(target.order) && target.order.length > 0) {
         return target.order as PresetPromptOrder[]
       }
-      // 也可能是平铺格式 [{identifier, enabled}]
       if (target.identifier !== undefined) {
         return raw as unknown as PresetPromptOrder[]
       }
     }
-    // fallback: 从 prompts 数组生成
     return p.prompts
       .filter((pp) => pp.identifier)
       .sort((a, b) => a.injection_order - b.injection_order)
@@ -85,7 +99,6 @@ export function PresetEditor() {
 
   async function handleSave() {
     if (!preset) return
-    // 包装为酒馆格式: [{ character_id, order: [...] }]
     const promptOrderWrapped = order.length > 0
       ? [{ character_id: preset.extensions?.preferred_char_id as number ?? 100001, order }]
       : []
@@ -123,7 +136,6 @@ export function PresetEditor() {
   async function handleImport(file: File) {
     try {
       const imported = await parsePresetJSON(file)
-      // 合并 prompt 池
       const existingIds = new Set(preset?.prompts.map((p) => p.identifier) ?? [])
       const newPrompts = (imported.prompts ?? []).filter(
         (p) => !existingIds.has(p.identifier)
@@ -135,6 +147,10 @@ export function PresetEditor() {
     } catch {
       toast.error("导入失败")
     }
+  }
+
+  function scrollToSection(sectionId: string) {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" })
   }
 
   // === Prompt 操作 ===
@@ -193,6 +209,44 @@ export function PresetEditor() {
     setOrder(order.filter((o) => o.identifier !== identifier))
   }
 
+  // === 移动到指定位置 ===
+
+  function openMoveDialog() {
+    setMoveSearch("")
+    setMoveSelectedId(null)
+    setMoveOpen(true)
+  }
+
+  function handleMoveToPosition(targetIndex: number) {
+    if (!moveSelectedId) return
+
+    const alreadyLinkedIdx = order.findIndex((o) => o.identifier === moveSelectedId)
+    if (alreadyLinkedIdx >= 0) {
+      // 已在列表中：移动到新位置
+      const updated = [...order]
+      const [moved] = updated.splice(alreadyLinkedIdx, 1)
+      // 如果目标在原位置之后，splice 后索引偏移
+      const insertIdx = alreadyLinkedIdx < targetIndex ? targetIndex - 1 : targetIndex
+      updated.splice(insertIdx, 0, moved)
+      setOrder(updated)
+    } else {
+      // 不在列表中：插入到指定位置
+      const updated = [...order]
+      updated.splice(targetIndex, 0, { identifier: moveSelectedId, enabled: true })
+      setOrder(updated)
+    }
+    setMoveOpen(false)
+  }
+
+  const promptMap = new Map(preset?.prompts.map((p) => [p.identifier, p]) ?? [])
+
+  // 移动到 Dialog 的过滤池列表
+  const movePoolFiltered = (preset?.prompts ?? []).filter((p) => {
+    if (!moveSearch) return true
+    const lower = moveSearch.toLowerCase()
+    return p.name.toLowerCase().includes(lower) || p.content.toLowerCase().includes(lower)
+  })
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
@@ -204,9 +258,9 @@ export function PresetEditor() {
   if (!preset) return null
 
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
       {/* 顶栏 */}
-      <header className="flex flex-wrap items-center justify-between gap-2">
+      <header className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <Button
             variant="ghost"
@@ -220,9 +274,9 @@ export function PresetEditor() {
             value={preset.name}
             onChange={(e) => handleChange({ ...preset, name: e.target.value })}
             placeholder="预设名称"
-            className="text-lg sm:text-xl font-bold border-none px-0 h-auto max-w-[300px]"
+            className="text-sm sm:text-lg font-bold border-none px-0 h-auto max-w-[140px] sm:max-w-[320px] flex-1 sm:flex-none"
           />
-          <span className="text-xs text-muted-foreground shrink-0">
+          <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">
             {preset.prompts.length} 条提示词
           </span>
         </div>
@@ -237,7 +291,7 @@ export function PresetEditor() {
           </Button>
           <label className="cursor-pointer inline-flex items-center gap-1.5 h-8 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] border border-border bg-background hover:bg-muted hover:text-foreground whitespace-nowrap transition-all select-none">
             <Upload className="h-3.5 w-3.5" />
-            导入
+            <span className="hidden sm:inline">导入</span>
             <input
               type="file"
               accept=".json"
@@ -252,83 +306,178 @@ export function PresetEditor() {
         </div>
       </header>
 
-      {/* 采样参数 */}
-      <PresetSamplerParams preset={preset} onChange={handleChange} />
-
-      {/* 格式化模板 */}
-      <PresetFormatTemplates preset={preset} onChange={handleChange} />
-
-      {/* 提示词管理 */}
-      <div className="space-y-3">
-        {/* 标签切换 */}
-        <div className="flex items-center bg-muted/50 rounded-md p-0.5 w-fit">
+      {/* 主体：侧边栏 + 内容 */}
+      <div className="flex flex-1 min-h-0">
+        {/* 侧边栏 */}
+        <nav className={cn(
+          "shrink-0 border-r bg-muted/60 flex flex-col py-2 gap-0.5 transition-all duration-200 overflow-hidden",
+          sidebarOpen ? "w-[90px]" : "w-0 border-r-0"
+        )}>
           <button
-            onClick={() => setPromptTab("linked")}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
-              promptTab === "linked"
-                ? "bg-background text-foreground font-medium shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            onClick={handleSave}
+            title="保存"
+            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
           >
-            已链接 ({order.length})
+            <Save className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">保存</span>
           </button>
           <button
-            onClick={() => setPromptTab("pool")}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
-              promptTab === "pool"
-                ? "bg-background text-foreground font-medium shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            onClick={handleExport}
+            title="导出"
+            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
           >
-            全部池 ({preset.prompts.length})
+            <Download className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">导出</span>
           </button>
+
+          <hr className="my-1 mx-2 border-border" />
+
+          <button
+            onClick={openMoveDialog}
+            title="移动到指定位置"
+            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+          >
+            <ArrowRightToLine className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">移动到</span>
+          </button>
+
+          <hr className="my-1 mx-2 border-border" />
+
+          <button
+            onClick={() => scrollToSection("section-sampler")}
+            title="采样参数"
+            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">采样</span>
+          </button>
+          <button
+            onClick={() => scrollToSection("section-prompts")}
+            title="提示词管理"
+            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+          >
+            <MessageSquareText className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">提示词</span>
+          </button>
+
+          {/* 折叠按钮 */}
+          <div className="mt-auto pt-2 border-t mx-2 border-border">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex items-center justify-center w-full py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              title={sidebarOpen ? "收起侧栏" : "展开侧栏"}
+            >
+              {sidebarOpen ? (
+                <PanelLeftClose className="h-3.5 w-3.5" />
+              ) : (
+                <PanelLeft className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+        </nav>
+
+        {/* 内容区 */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* 侧边栏切换按钮（侧边栏收起时） */}
+          {!sidebarOpen && (
+            <div className="px-2 pt-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setSidebarOpen(true)}
+                title="展开侧栏"
+              >
+                <PanelLeft className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-4xl">
+            {/* 采样参数 */}
+            <div id="section-sampler">
+              <PresetSamplerParams preset={preset} onChange={handleChange} />
+            </div>
+
+            {/* 格式化模板 */}
+            <div id="section-templates">
+              <PresetFormatTemplates preset={preset} onChange={handleChange} />
+            </div>
+
+            {/* 提示词管理 */}
+            <div id="section-prompts" className="space-y-3">
+              {/* 标签切换 */}
+              <div className="flex items-center bg-muted/50 rounded-md p-0.5 w-fit">
+                <button
+                  onClick={() => setPromptTab("linked")}
+                  className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                    promptTab === "linked"
+                      ? "bg-background text-foreground font-medium shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  已链接 ({order.length})
+                </button>
+                <button
+                  onClick={() => setPromptTab("pool")}
+                  className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                    promptTab === "pool"
+                      ? "bg-background text-foreground font-medium shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  全部池 ({preset.prompts.length})
+                </button>
+              </div>
+
+              {/* 搜索 */}
+              <Input
+                placeholder="搜索提示词..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 text-xs max-w-sm"
+              />
+
+              {/* 工具栏 */}
+              <PresetToolbar
+                poolPrompts={preset.prompts}
+                orderIdentifiers={order.map((o) => o.identifier)}
+                onInsertFromPool={handleInsertFromPool}
+                onNewPrompt={handleNewPrompt}
+                onMoveToPosition={openMoveDialog}
+                selectedIds={selectedIds}
+              />
+
+              {/* 列表/池视图 */}
+              {promptTab === "linked" ? (
+                <PresetPromptList
+                  order={order}
+                  prompts={preset.prompts}
+                  selectedIds={selectedIds}
+                  onReorder={setOrder}
+                  onToggleEnabled={handleTogglePrompt}
+                  onEdit={handleEditPrompt}
+                  onRemove={handleRemoveFromList}
+                  onToggleSelect={(id) => {
+                    const next = new Set(selectedIds)
+                    if (next.has(id)) next.delete(id)
+                    else next.add(id)
+                    setSelectedIds(next)
+                  }}
+                  search={search}
+                />
+              ) : (
+                <PresetPromptPool
+                  prompts={preset.prompts}
+                  linkedIdentifiers={new Set(order.map((o) => o.identifier))}
+                  onAddToLinked={handleInsertFromPool}
+                  onEdit={handleEditPrompt}
+                  onDelete={handleDeletePoolPrompt}
+                  search={search}
+                />
+              )}
+            </div>
+          </div>
         </div>
-
-        {/* 搜索 */}
-        <Input
-          placeholder="搜索提示词..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-8 text-xs max-w-sm"
-        />
-
-        {/* 工具栏 */}
-        <PresetToolbar
-          poolPrompts={preset.prompts}
-          orderIdentifiers={order.map((o) => o.identifier)}
-          onInsertFromPool={handleInsertFromPool}
-          onNewPrompt={handleNewPrompt}
-          selectedIds={selectedIds}
-        />
-
-        {/* 列表/池视图 */}
-        {promptTab === "linked" ? (
-          <PresetPromptList
-            order={order}
-            prompts={preset.prompts}
-            selectedIds={selectedIds}
-            onReorder={setOrder}
-            onToggleEnabled={handleTogglePrompt}
-            onEdit={handleEditPrompt}
-            onRemove={handleRemoveFromList}
-            onToggleSelect={(id) => {
-              const next = new Set(selectedIds)
-              if (next.has(id)) next.delete(id)
-              else next.add(id)
-              setSelectedIds(next)
-            }}
-            search={search}
-          />
-        ) : (
-          <PresetPromptPool
-            prompts={preset.prompts}
-            linkedIdentifiers={new Set(order.map((o) => o.identifier))}
-            onAddToLinked={handleInsertFromPool}
-            onEdit={handleEditPrompt}
-            onDelete={handleDeletePoolPrompt}
-            search={search}
-          />
-        )}
       </div>
 
       {/* Prompt 编辑对话框 */}
@@ -338,6 +487,112 @@ export function PresetEditor() {
         prompt={editingPrompt}
         onSave={handleSavePrompt}
       />
+
+      {/* 移动到指定位置 Dialog */}
+      <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm sm:text-base">
+              移动到指定位置
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {/* 搜索 */}
+            <Input
+              placeholder="搜索条目..."
+              value={moveSearch}
+              onChange={(e) => setMoveSearch(e.target.value)}
+              className="h-8 text-xs"
+            />
+
+            {/* 池中条目 */}
+            <div>
+              <p className="text-[11px] text-muted-foreground mb-1.5">
+                选择要移动的条目：
+              </p>
+              <div className="max-h-[160px] overflow-y-auto space-y-0.5 border rounded-md p-1">
+                {movePoolFiltered.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-2">无匹配条目</p>
+                ) : (
+                  movePoolFiltered.map((p) => {
+                    const curIdx = order.findIndex((o) => o.identifier === p.identifier)
+                    const isLinked = curIdx >= 0
+                    return (
+                      <button
+                        key={p.identifier}
+                        onClick={() => setMoveSelectedId(p.identifier)}
+                        className={`w-full text-left px-2 py-1.5 rounded-sm text-xs flex items-center justify-between transition-colors ${
+                          moveSelectedId === p.identifier
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <span className="truncate">{p.name || "未命名"}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                          {isLinked ? `已在列表 #${curIdx + 1}` : "未链接"}
+                        </span>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* 已链接列表 = 选择目标位置 */}
+            {moveSelectedId && (
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1.5">
+                  选择插入位置（将插入到该行之前）：
+                </p>
+                <div className="max-h-[200px] overflow-y-auto space-y-0.5 border rounded-md p-1">
+                  {/* 最前面 */}
+                  <button
+                    onClick={() => handleMoveToPosition(0)}
+                    className="w-full text-left px-2 py-1.5 rounded-sm text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                  >
+                    📍 最前面
+                  </button>
+                  <hr className="my-0.5" />
+                  {order.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-2">列表为空</p>
+                  ) : (
+                    order.map((o, i) => {
+                      const prompt = promptMap.get(o.identifier)
+                      return (
+                        <button
+                          key={o.identifier}
+                          onClick={() => handleMoveToPosition(i)}
+                          className={`w-full text-left px-2 py-1.5 rounded-sm text-xs transition-colors flex items-center gap-2 ${
+                            o.identifier === moveSelectedId
+                              ? "opacity-50 cursor-default"
+                              : "hover:bg-primary/10 hover:text-primary"
+                          }`}
+                          disabled={o.identifier === moveSelectedId}
+                        >
+                          <span className="text-[10px] text-muted-foreground w-5 text-right shrink-0">
+                            {i + 1}.
+                          </span>
+                          <span className="truncate">
+                            {prompt?.name ?? "未命名"}
+                          </span>
+                        </button>
+                      )
+                    })
+                  )}
+                  <hr className="my-0.5" />
+                  {/* 最后面 */}
+                  <button
+                    onClick={() => handleMoveToPosition(order.length)}
+                    className="w-full text-left px-2 py-1.5 rounded-sm text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                  >
+                    📍 最后面
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

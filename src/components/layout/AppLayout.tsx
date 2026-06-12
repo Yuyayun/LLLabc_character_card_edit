@@ -72,7 +72,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </nav>
           </div>
-          <div className="flex items-center gap-0.5 sm:gap-1">
+          <div className="flex items-center gap-1.5 sm:gap-1">
             <Link to="/chat" title="AI 对话">
               <Button variant="ghost" size="icon" className="h-9 w-9">
                 <MessageSquareText className="h-4 w-4" />
