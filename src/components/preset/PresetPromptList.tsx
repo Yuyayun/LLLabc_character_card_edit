@@ -32,7 +32,6 @@ export function PresetPromptList({
 }: Props) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-  const listRef = useRef<HTMLUListElement>(null)
   const scrollRafRef = useRef<number | null>(null)
 
   const promptMap = new Map(prompts.map((p) => [p.identifier, p]))
@@ -68,29 +67,23 @@ export function PresetPromptList({
   }
 
   const autoScroll = useCallback((clientY: number) => {
-    const list = listRef.current
-    if (!list) return
-    const rect = list.getBoundingClientRect()
-    const top = rect.top
-    const bottom = rect.bottom
-
     stopAutoScroll()
 
     const scrollStep = () => {
-      const currentRect = list.getBoundingClientRect()
-      const distFromTop = clientY - currentRect.top
-      const distFromBottom = currentRect.bottom - clientY
+      const viewH = window.innerHeight
+      const distFromTop = clientY
+      const distFromBottom = viewH - clientY
 
-      if (distFromTop < AUTO_SCROLL_ZONE && distFromTop > 0 && list.scrollTop > 0) {
-        list.scrollTop -= AUTO_SCROLL_SPEED
+      if (distFromTop < AUTO_SCROLL_ZONE && distFromTop > 0 && window.scrollY > 0) {
+        window.scrollBy(0, -AUTO_SCROLL_SPEED)
         scrollRafRef.current = requestAnimationFrame(scrollStep)
-      } else if (distFromBottom < AUTO_SCROLL_ZONE && distFromBottom > 0 && list.scrollTop < list.scrollHeight - list.clientHeight) {
-        list.scrollTop += AUTO_SCROLL_SPEED
+      } else if (distFromBottom < AUTO_SCROLL_ZONE && distFromBottom > 0) {
+        window.scrollBy(0, AUTO_SCROLL_SPEED)
         scrollRafRef.current = requestAnimationFrame(scrollStep)
       }
     }
 
-    if (clientY - top < AUTO_SCROLL_ZONE || bottom - clientY < AUTO_SCROLL_ZONE) {
+    if (clientY < AUTO_SCROLL_ZONE || window.innerHeight - clientY < AUTO_SCROLL_ZONE) {
       scrollRafRef.current = requestAnimationFrame(scrollStep)
     }
   }, [])
@@ -131,7 +124,7 @@ export function PresetPromptList({
   }
 
   return (
-    <ul ref={listRef} className="space-y-1 max-h-[60vh] overflow-y-auto">
+    <ul className="space-y-1">
       {indexed.map(({ order: o, origIndex }) => {
         const prompt = promptMap.get(o.identifier)
         if (!prompt) return null
