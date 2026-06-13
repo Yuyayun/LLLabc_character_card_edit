@@ -153,7 +153,7 @@ export function Dashboard() {
             导入
             <input
               type="file"
-              accept=".json,.png"
+              accept="application/json,.json,image/png,.png"
               className="hidden"
               onChange={handleFileInput}
             />
@@ -166,7 +166,7 @@ export function Dashboard() {
             恢复
             <input
               type="file"
-              accept=".json"
+              accept="application/json,.json"
               className="hidden"
               onChange={handleRestore}
             />

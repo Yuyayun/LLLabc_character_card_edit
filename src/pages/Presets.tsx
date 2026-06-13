@@ -87,7 +87,7 @@ export function Presets() {
             导入
             <input
               type="file"
-              accept=".json"
+              accept="application/json,.json"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0]
