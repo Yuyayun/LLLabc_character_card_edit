@@ -311,31 +311,12 @@ export function PresetEditor() {
         {/* 侧边栏 */}
         <nav className={cn(
           "shrink-0 border-r bg-muted/60 flex flex-col py-2 gap-0.5 transition-all duration-200 overflow-hidden",
-          sidebarOpen ? "w-[90px]" : "w-0 border-r-0"
+          sidebarOpen ? "w-14 sm:w-[90px]" : "w-0 border-r-0"
         )}>
-          <button
-            onClick={handleSave}
-            title="保存"
-            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
-          >
-            <Save className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline">保存</span>
-          </button>
-          <button
-            onClick={handleExport}
-            title="导出"
-            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
-          >
-            <Download className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline">导出</span>
-          </button>
-
-          <hr className="my-1 mx-2 border-border" />
-
           <button
             onClick={openMoveDialog}
             title="移动到指定位置"
-            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+            className="flex items-center justify-center sm:justify-start gap-1.5 px-1 sm:px-2.5 py-2 text-xs transition-colors mx-0.5 sm:mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
           >
             <ArrowRightToLine className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">移动到</span>
@@ -346,7 +327,7 @@ export function PresetEditor() {
           <button
             onClick={() => scrollToSection("section-sampler")}
             title="采样参数"
-            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+            className="flex items-center justify-center sm:justify-start gap-1.5 px-1 sm:px-2.5 py-2 text-xs transition-colors mx-0.5 sm:mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">采样</span>
@@ -354,7 +335,7 @@ export function PresetEditor() {
           <button
             onClick={() => scrollToSection("section-prompts")}
             title="提示词管理"
-            className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-left transition-colors mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+            className="flex items-center justify-center sm:justify-start gap-1.5 px-1 sm:px-2.5 py-2 text-xs transition-colors mx-0.5 sm:mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
           >
             <MessageSquareText className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">提示词</span>
