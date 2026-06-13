@@ -8,7 +8,7 @@ import {
   ArrowLeft, Save, Download, Upload,
   PanelLeftClose, PanelLeft,
   SlidersHorizontal, MessageSquareText,
-  ArrowRightToLine,
+  ArrowRightToLine, Braces,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -20,6 +20,8 @@ import { PresetPromptList } from "@/components/preset/PresetPromptList"
 import { PresetPromptPool } from "@/components/preset/PresetPromptPool"
 import { PresetPromptEditor } from "@/components/preset/PresetPromptEditor"
 import { PresetToolbar } from "@/components/preset/PresetToolbar"
+import { PresetRegex } from "@/components/preset/PresetRegex"
+import type { RegexScript } from "@/types"
 import {
   Dialog,
   DialogContent,
@@ -333,6 +335,14 @@ export function PresetEditor() {
             <span className="hidden sm:inline">采样</span>
           </button>
           <button
+            onClick={() => scrollToSection("section-regex")}
+            title="正则脚本"
+            className="flex items-center justify-center sm:justify-start gap-1.5 px-1 sm:px-2.5 py-2 text-xs transition-colors mx-0.5 sm:mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+          >
+            <Braces className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">Regex</span>
+          </button>
+          <button
             onClick={() => scrollToSection("section-prompts")}
             title="提示词管理"
             className="flex items-center justify-center sm:justify-start gap-1.5 px-1 sm:px-2.5 py-2 text-xs transition-colors mx-0.5 sm:mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
@@ -382,6 +392,22 @@ export function PresetEditor() {
             {/* 格式化模板 */}
             <div id="section-templates">
               <PresetFormatTemplates preset={preset} onChange={handleChange} />
+            </div>
+
+            {/* 正则脚本 */}
+            <div id="section-regex">
+              <PresetRegex
+                scripts={(preset.extensions?.regex_scripts as RegexScript[]) ?? []}
+                onChange={(scripts) => {
+                  handleChange({
+                    ...preset,
+                    extensions: {
+                      ...(preset.extensions ?? {}),
+                      regex_scripts: scripts as unknown as Record<string, unknown>,
+                    },
+                  })
+                }}
+              />
             </div>
 
             {/* 提示词管理 */}

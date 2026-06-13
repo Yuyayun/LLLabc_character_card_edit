@@ -634,9 +634,21 @@ export function exportPresetJSON(preset: import("@/types").Preset): void {
   for (const [key, value] of Object.entries(preset)) {
     if (PRESET_INTERNAL_KEYS.has(key)) continue
     if (key === "extensions") {
-      // 展开到顶层
       const ext = value as Record<string, unknown> | undefined
-      if (ext) Object.assign(output, ext)
+      if (ext) {
+        // prompt_order 展开到顶层（酒馆预设格式需要）
+        if (ext.prompt_order) output.prompt_order = ext.prompt_order
+        // 其余保留在 extensions 下（如 regex_scripts）
+        const remaining: Record<string, unknown> = {}
+        for (const ek of Object.keys(ext)) {
+          if (ek !== "prompt_order" && ek !== "preferred_char_id") {
+            remaining[ek] = ext[ek]
+          }
+        }
+        if (Object.keys(remaining).length > 0) {
+          output.extensions = remaining
+        }
+      }
       continue
     }
     output[key] = value
