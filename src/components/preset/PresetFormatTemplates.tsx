@@ -22,6 +22,9 @@ const TEMPLATE_FIELDS: TemplateField[] = [
   { key: "wi_format", label: "世界书格式" },
   { key: "scenario_format", label: "场景格式" },
   { key: "personality_format", label: "性格格式" },
+]
+
+const UTILITY_PROMPT_FIELDS: TemplateField[] = [
   { key: "impersonation_prompt", label: "AI帮答提示词", textarea: true },
   { key: "new_chat_prompt", label: "新聊天提示词", textarea: true },
   { key: "new_group_chat_prompt", label: "新群聊提示词", textarea: true },
@@ -56,6 +59,31 @@ export function PresetFormatTemplates({ preset, onChange }: Props) {
     onChange({ ...preset, [key]: value })
   }
 
+  function TemplateControl({ field }: { field: TemplateField }) {
+    return (
+      <div className="space-y-1">
+        <Label className="text-[11px] text-muted-foreground">
+          {field.label}
+        </Label>
+        {field.textarea ? (
+          <textarea
+            value={(preset[field.key] as string) ?? ""}
+            onChange={(e) => updateField(field.key, e.target.value)}
+            className="flex min-h-[60px] w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+            placeholder="{{macro}} 或普通文本"
+          />
+        ) : (
+          <Input
+            value={(preset[field.key] as string) ?? ""}
+            onChange={(e) => updateField(field.key, e.target.value)}
+            placeholder="{{macro}} 或普通文本"
+            className="h-8 text-xs font-mono"
+          />
+        )}
+      </div>
+    )
+  }
+
   return (
     <Card>
       <CardHeader
@@ -80,48 +108,30 @@ export function PresetFormatTemplates({ preset, onChange }: Props) {
         )}
       >
         <div className="overflow-hidden">
-          <CardContent className="pb-4 space-y-4">
-            {/* 模板字段 */}
-            <div className="space-y-3">
-              {TEMPLATE_FIELDS.map((f) => (
-                <div key={f.key} className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">
-                    {f.label}
-                  </Label>
-                  {f.textarea ? (
-                    <textarea
-                      value={(preset[f.key] as string) ?? ""}
-                      onChange={(e) => updateField(f.key, e.target.value)}
-                      className="flex min-h-[60px] w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-                      placeholder={`{{macro}} 或普通文本`}
-                    />
-                  ) : (
-                    <Input
-                      value={(preset[f.key] as string) ?? ""}
-                      onChange={(e) => updateField(f.key, e.target.value)}
-                      placeholder="{{macro}} 或普通文本"
-                      className="h-7 text-xs font-mono"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+          <CardContent className="pb-4">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="space-y-4">
+                <section className="space-y-3">
+                  <h4 className="text-xs font-medium">格式模板</h4>
+                  {TEMPLATE_FIELDS.map((f) => (
+                    <TemplateControl key={f.key} field={f} />
+                  ))}
+                </section>
 
-            {/* 行为开关 */}
-            <div className="border-t pt-4">
-              <button
-                type="button"
-                className="text-[11px] text-muted-foreground hover:text-foreground mb-2 flex items-center gap-1"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-              >
-                {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                行为开关
-              </button>
-              {showAdvanced && (
-                <div className="space-y-2">
+                <section className="space-y-3 border-t pt-4">
+                  <h4 className="text-xs font-medium">实用提示词</h4>
+                  {UTILITY_PROMPT_FIELDS.map((f) => (
+                    <TemplateControl key={f.key} field={f} />
+                  ))}
+                </section>
+              </div>
+
+              <aside className="space-y-4 lg:border-l lg:pl-4">
+                <section className="space-y-2">
+                  <h4 className="text-xs font-medium">行为开关</h4>
                   {BEHAVIOR_TOGGLES.map((t) => (
-                    <div key={t.key} className="flex items-center justify-between py-1">
-                      <div>
+                    <div key={t.key} className="flex items-center justify-between gap-3 py-1">
+                      <div className="min-w-0">
                         <Label className="text-xs">{t.label}</Label>
                         {t.desc && (
                           <p className="text-[10px] text-muted-foreground">
@@ -135,64 +145,64 @@ export function PresetFormatTemplates({ preset, onChange }: Props) {
                       />
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
+                </section>
 
-            {/* 高级数值参数 */}
-            <div className="border-t pt-4">
-              <button
-                type="button"
-                className="text-[11px] text-muted-foreground hover:text-foreground mb-2 flex items-center gap-1"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-              >
-                高级参数
-              </button>
-              {showAdvanced && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">名称行为</Label>
-                    <select
-                      value={preset.names_behavior ?? 0}
-                      onChange={(e) => updateField("names_behavior", parseInt(e.target.value))}
-                      className="flex h-7 w-full rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value={0}>无</option>
-                      <option value={1}>补全</option>
-                      <option value={-1}>静默</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">推理力度</Label>
-                    <select
-                      value={preset.reasoning_effort ?? "auto"}
-                      onChange={(e) => updateField("reasoning_effort", e.target.value)}
-                      className="flex h-7 w-full rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="auto">自动</option>
-                      <option value="low">低</option>
-                      <option value="medium">中</option>
-                      <option value="high">高</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">续写后缀</Label>
-                    <Input
-                      value={(preset.continue_postfix as string) ?? ""}
-                      onChange={(e) => updateField("continue_postfix", e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">空消息文本</Label>
-                    <Input
-                      value={(preset.send_if_empty as string) ?? ""}
-                      onChange={(e) => updateField("send_if_empty", e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                  </div>
-                </div>
-              )}
+                <section className="border-t pt-4">
+                  <button
+                    type="button"
+                    className="mb-2 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                  >
+                    {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    高级参数
+                  </button>
+                  {showAdvanced && (
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">名称行为</Label>
+                        <select
+                          value={preset.names_behavior ?? 0}
+                          onChange={(e) => updateField("names_behavior", parseInt(e.target.value))}
+                          className="flex h-8 w-full rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          <option value={0}>无</option>
+                          <option value={1}>补全</option>
+                          <option value={-1}>静默</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">推理力度</Label>
+                        <select
+                          value={preset.reasoning_effort ?? "auto"}
+                          onChange={(e) => updateField("reasoning_effort", e.target.value)}
+                          className="flex h-8 w-full rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          <option value="auto">自动</option>
+                          <option value="low">低</option>
+                          <option value="medium">中</option>
+                          <option value="high">高</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">续写后缀</Label>
+                        <Input
+                          value={(preset.continue_postfix as string) ?? ""}
+                          onChange={(e) => updateField("continue_postfix", e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">空消息文本</Label>
+                        <Input
+                          value={(preset.send_if_empty as string) ?? ""}
+                          onChange={(e) => updateField("send_if_empty", e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </aside>
             </div>
           </CardContent>
         </div>

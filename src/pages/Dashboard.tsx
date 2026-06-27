@@ -139,16 +139,16 @@ export function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
       {/* 顶部操作栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
         <h1 className="text-2xl font-bold">角色卡</h1>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => navigate("/editor/new")} size="sm">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+          <Button onClick={() => navigate("/editor/new")} size="sm" className="h-9">
             <Plus className="h-4 w-4 mr-1" />
             新建
           </Button>
-          <label className="cursor-pointer inline-flex items-center gap-1.5 h-7 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] border border-border bg-background hover:bg-muted hover:text-foreground whitespace-nowrap transition-all select-none">
+          <label className="cursor-pointer inline-flex items-center gap-1.5 h-9 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] border border-border bg-background hover:bg-muted hover:text-foreground whitespace-nowrap transition-all select-none">
             <Upload className="h-3.5 w-3.5" />
             导入
             <input
@@ -158,11 +158,11 @@ export function Dashboard() {
               onChange={handleFileInput}
             />
           </label>
-          <Button variant="outline" size="sm" onClick={handleBackup}>
+          <Button variant="outline" size="sm" onClick={handleBackup} className="h-9">
             <Download className="h-4 w-4 mr-1" />
             备份
           </Button>
-          <label className="cursor-pointer inline-flex items-center h-7 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] border border-border bg-background hover:bg-muted hover:text-foreground whitespace-nowrap transition-all select-none">
+          <label className="cursor-pointer inline-flex items-center h-9 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] border border-border bg-background hover:bg-muted hover:text-foreground whitespace-nowrap transition-all select-none">
             恢复
             <input
               type="file"
@@ -175,7 +175,7 @@ export function Dashboard() {
             variant="outline"
             size="sm"
             onClick={handleClearAll}
-            className="text-destructive hover:text-destructive"
+            className="h-9 text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4 mr-1" />
             清空
@@ -184,13 +184,13 @@ export function Dashboard() {
       </div>
 
       {/* 搜索 */}
-      <div className="relative mb-6">
+      <div className="relative mb-6 w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="搜索角色卡..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 max-w-sm"
+          className="pl-9 w-full"
         />
       </div>
 

@@ -98,7 +98,7 @@ export function EditorBasic({ card, onChange }: Props) {
         {/* 基本信息 */}
         <section>
           <h3 className="text-sm font-semibold mb-3 pb-1.5 border-b">基本信息</h3>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="name" className="text-xs">角色名 *</Label>
               <Input

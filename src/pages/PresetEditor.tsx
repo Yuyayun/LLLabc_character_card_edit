@@ -8,7 +8,7 @@ import {
   ArrowLeft, Save, Download, Upload,
   PanelLeftClose, PanelLeft,
   SlidersHorizontal, MessageSquareText,
-  ArrowRightToLine, Braces,
+  ArrowRightToLine, Braces, FileText,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -308,12 +308,53 @@ export function PresetEditor() {
         </div>
       </header>
 
+      {/* 手机端分区导航 */}
+      <nav className="md:hidden shrink-0 border-b bg-muted/60 overflow-x-auto">
+        <div className="flex min-w-max gap-1 p-2">
+          <button
+            onClick={openMoveDialog}
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm px-2.5 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
+          >
+            <ArrowRightToLine className="h-3.5 w-3.5 shrink-0" />
+            移动到
+          </button>
+          <button
+            onClick={() => scrollToSection("section-sampler")}
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm px-2.5 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
+            采样
+          </button>
+          <button
+            onClick={() => scrollToSection("section-templates")}
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm px-2.5 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
+          >
+            <FileText className="h-3.5 w-3.5 shrink-0" />
+            模板
+          </button>
+          <button
+            onClick={() => scrollToSection("section-regex")}
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm px-2.5 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
+          >
+            <Braces className="h-3.5 w-3.5 shrink-0" />
+            Regex
+          </button>
+          <button
+            onClick={() => scrollToSection("section-prompts")}
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm px-2.5 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
+          >
+            <MessageSquareText className="h-3.5 w-3.5 shrink-0" />
+            提示词
+          </button>
+        </div>
+      </nav>
+
       {/* 主体：侧边栏 + 内容 */}
       <div className="flex flex-1 min-h-0">
         {/* 侧边栏 */}
         <nav className={cn(
-          "shrink-0 border-r bg-muted/60 flex flex-col py-2 gap-0.5 transition-all duration-200 overflow-hidden",
-          sidebarOpen ? "w-14 sm:w-[90px]" : "w-0 border-r-0"
+          "hidden shrink-0 border-r bg-muted/60 py-2 gap-0.5 transition-all duration-200 overflow-hidden md:flex md:flex-col",
+          sidebarOpen ? "md:w-[90px]" : "w-0 border-r-0"
         )}>
           <button
             onClick={openMoveDialog}
@@ -333,6 +374,14 @@ export function PresetEditor() {
           >
             <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">采样</span>
+          </button>
+          <button
+            onClick={() => scrollToSection("section-templates")}
+            title="格式模板"
+            className="flex items-center justify-center sm:justify-start gap-1.5 px-1 sm:px-2.5 py-2 text-xs transition-colors mx-0.5 sm:mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+          >
+            <FileText className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">模板</span>
           </button>
           <button
             onClick={() => scrollToSection("section-regex")}
@@ -371,7 +420,7 @@ export function PresetEditor() {
         <div className="flex-1 flex flex-col min-w-0">
           {/* 侧边栏切换按钮（侧边栏收起时） */}
           {!sidebarOpen && (
-            <div className="px-2 pt-1 shrink-0">
+            <div className="hidden px-2 pt-1 shrink-0 md:block">
               <Button
                 variant="ghost"
                 size="icon"

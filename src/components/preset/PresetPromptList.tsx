@@ -19,6 +19,44 @@ interface Props {
 const AUTO_SCROLL_ZONE = 60 // 距离边缘多少 px 开始自动滚动
 const AUTO_SCROLL_SPEED = 8 // 每次滚动像素数
 
+const MARKER_IDENTIFIERS = new Set([
+  "main",
+  "worldInfoBefore",
+  "worldInfoAfter",
+  "charDescription",
+  "charPersonality",
+  "scenario",
+  "dialogueExamples",
+  "chatHistory",
+  "personaDescription",
+])
+
+const roleLabels: Record<string, string> = {
+  system: "系统",
+  user: "用户",
+  assistant: "AI",
+}
+
+function promptKind(prompt: PresetPrompt): string {
+  if (prompt.marker || MARKER_IDENTIFIERS.has(prompt.identifier)) return "占位节点"
+  if (!prompt.content) return "空内容"
+  return "提示词"
+}
+
+function positionLabel(prompt: PresetPrompt): string {
+  if (prompt.injection_position === 1) return `聊天中 @ 深度 ${prompt.injection_depth ?? 4}`
+  return "相对"
+}
+
+function promptMeta(prompt: PresetPrompt): string[] {
+  return [
+    promptKind(prompt),
+    roleLabels[prompt.role] ?? "未指定角色",
+    positionLabel(prompt),
+    `${prompt.content?.length ?? 0} 字符`,
+  ].filter(Boolean)
+}
+
 export function PresetPromptList({
   order,
   prompts,
@@ -141,7 +179,7 @@ export function PresetPromptList({
             onDragEnd={handleDragEnd}
             onDragOver={(e) => handleDragOver(e, origIndex)}
             onDrop={() => handleDrop(origIndex)}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-md border transition-all min-h-[44px] ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-md border transition-all min-h-[52px] ${
               isDrag ? "opacity-40" : ""
             } ${isOver ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:bg-muted/50"} ${
               !o.enabled ? "opacity-50" : ""
@@ -178,15 +216,21 @@ export function PresetPromptList({
               className="h-3.5 w-3.5 shrink-0"
             />
 
-            {/* 名称 */}
-            <span className="flex-1 min-w-0 text-xs truncate">
-              {prompt.name}
-            </span>
+            {/* 名称 + 酒馆元信息 */}
+            <div className="flex-1 min-w-0">
+              <span className="block truncate text-xs font-medium">
+                {prompt.name || "未命名"}
+              </span>
+              <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                {promptMeta(prompt).join(" · ")}
+              </span>
+            </div>
 
             {/* 开关 */}
             <Switch
               checked={o.enabled}
               onCheckedChange={() => onToggleEnabled(o.identifier)}
+              title="启用"
             />
 
             {/* 编辑 */}

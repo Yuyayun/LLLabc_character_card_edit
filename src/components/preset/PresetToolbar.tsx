@@ -38,12 +38,12 @@ export function PresetToolbar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-2">
       {/* 下拉 + 插入 */}
       <select
         value={selectedPoolId}
         onChange={(e) => setSelectedPoolId(e.target.value)}
-        className="flex h-8 min-w-[180px] max-w-[320px] rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+        className="flex h-9 w-full min-w-0 rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring sm:h-8 sm:w-auto sm:min-w-[180px] sm:max-w-[320px]"
       >
         <option value="">从池中选择条目...</option>
         {sorted.map((p) => (
@@ -57,7 +57,7 @@ export function PresetToolbar({
       <Button
         variant="outline"
         size="sm"
-        className="h-8 text-xs"
+        className="h-9 flex-1 text-xs sm:h-8 sm:flex-none"
         disabled={!selectedPoolId}
         onClick={handleInsert}
       >
@@ -68,8 +68,7 @@ export function PresetToolbar({
       <Button
         variant="outline"
         size="sm"
-        className="h-8 text-xs"
-        disabled={!selectedPoolId}
+        className="h-9 flex-1 text-xs sm:h-8 sm:flex-none"
         onClick={onMoveToPosition}
       >
         <ArrowRightToLine className="h-3.5 w-3.5 mr-1" />
@@ -77,9 +76,9 @@ export function PresetToolbar({
       </Button>
 
       {/* 分隔 */}
-      <span className="w-px h-5 bg-border mx-0.5" />
+      <span className="hidden w-px h-5 bg-border mx-0.5 sm:block" />
 
-      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onNewPrompt}>
+      <Button variant="outline" size="sm" className="h-9 flex-1 text-xs sm:h-8 sm:flex-none" onClick={onNewPrompt}>
         <Plus className="h-3.5 w-3.5 mr-1" />
         新建
       </Button>
@@ -88,7 +87,7 @@ export function PresetToolbar({
         <Button
           variant="outline"
           size="sm"
-          className="h-8 text-xs text-destructive hover:bg-destructive/10"
+          className="h-9 flex-1 text-xs text-destructive hover:bg-destructive/10 sm:h-8 sm:flex-none"
         >
           <Trash2 className="h-3.5 w-3.5 mr-1" />
           删除 ({selectedIds.size})

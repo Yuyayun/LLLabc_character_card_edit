@@ -11,6 +11,35 @@ interface Props {
   search: string
 }
 
+const MARKER_IDENTIFIERS = new Set([
+  "main",
+  "worldInfoBefore",
+  "worldInfoAfter",
+  "charDescription",
+  "charPersonality",
+  "scenario",
+  "dialogueExamples",
+  "chatHistory",
+  "personaDescription",
+])
+
+const roleLabels: Record<string, string> = {
+  system: "系统",
+  user: "用户",
+  assistant: "AI",
+}
+
+function promptKind(prompt: PresetPrompt): string {
+  if (prompt.marker || MARKER_IDENTIFIERS.has(prompt.identifier)) return "占位节点"
+  if (!prompt.content) return "空内容"
+  return "提示词"
+}
+
+function positionLabel(prompt: PresetPrompt): string {
+  if (prompt.injection_position === 1) return `聊天中 @ 深度 ${prompt.injection_depth ?? 4}`
+  return "相对"
+}
+
 export function PresetPromptPool({
   prompts,
   linkedIdentifiers,
@@ -36,9 +65,21 @@ export function PresetPromptPool({
     )
   }
 
+  const grouped = [
+    { title: "占位节点", items: filtered.filter((p) => promptKind(p) === "占位节点") },
+    { title: "提示词", items: filtered.filter((p) => promptKind(p) === "提示词") },
+    { title: "空内容", items: filtered.filter((p) => promptKind(p) === "空内容") },
+  ].filter((group) => group.items.length > 0)
+
   return (
-    <ul className="space-y-1">
-      {filtered.map((p) => {
+    <div className="space-y-3">
+      {grouped.map((group) => (
+        <section key={group.title} className="space-y-1">
+          <h4 className="px-1 text-[11px] font-medium text-muted-foreground">
+            {group.title}
+          </h4>
+          <ul className="space-y-1">
+            {group.items.map((p) => {
         const isLinked = linkedIdentifiers.has(p.identifier)
         return (
           <li
@@ -50,6 +91,14 @@ export function PresetPromptPool({
                 {p.name || "未命名"}
               </span>
               <span className="text-[10px] text-muted-foreground line-clamp-1 block mt-0.5">
+                {[
+                  promptKind(p),
+                  roleLabels[p.role] ?? "未指定角色",
+                  positionLabel(p),
+                  `${p.content?.length ?? 0} 字符`,
+                ].filter(Boolean).join(" · ")}
+              </span>
+              <span className="text-[10px] text-muted-foreground/80 line-clamp-1 block mt-0.5">
                 {p.content
                   ? p.content.slice(0, 80).replace(/\n/g, " ")
                   : "（空内容）"}
@@ -91,7 +140,10 @@ export function PresetPromptPool({
             </div>
           </li>
         )
-      })}
-    </ul>
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
   )
 }
