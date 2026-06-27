@@ -1,6 +1,6 @@
-@import "tailwindcss";
-
 @import url("https://fontsapi.zeoseven.com/440/main/result.css");
+
+@import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -282,7 +282,7 @@ header.sticky {
 /* ========== 触屏设备删除按钮常驻 ========== */
 
 @media (hover: none) and (pointer: coarse) {
-  .group:hover\:opacity-100 {
+  .group[class~="hover:opacity-100"] {
     opacity: 0.7 !important;
   }
 }

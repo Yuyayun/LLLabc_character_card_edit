@@ -26,15 +26,14 @@ const ROLES = [
   { value: "assistant", label: "AI助手" },
 ]
 const POSITIONS = [
-  { value: 0, label: "相对 (before)" },
-  { value: 1, label: "聊天中 (in-chat)" },
+  { value: 0, label: "相对" },
+  { value: 1, label: "聊天中" },
 ]
 const DEPTHS = [0, 1, 2, 3, 4] as const
 
 export function PresetPromptEditor({ open, onOpenChange, prompt, onSave }: Props) {
   const [name, setName] = useState("")
   const [content, setContent] = useState("")
-  const [enabled, setEnabled] = useState(true)
   const [role, setRole] = useState<"system" | "user" | "assistant">("system")
   const [injectionPosition, setInjectionPosition] = useState(0)
   const [injectionDepth, setInjectionDepth] = useState(4)
@@ -46,7 +45,6 @@ export function PresetPromptEditor({ open, onOpenChange, prompt, onSave }: Props
     if (open) {
       setName(prompt?.name ?? "")
       setContent(prompt?.content ?? "")
-      setEnabled(prompt?.enabled ?? true)
       setRole(prompt?.role ?? "system")
       setInjectionPosition(prompt?.injection_position ?? 0)
       setInjectionDepth(prompt?.injection_depth ?? 4)
@@ -61,7 +59,7 @@ export function PresetPromptEditor({ open, onOpenChange, prompt, onSave }: Props
     onSave({
       identifier: prompt?.identifier ?? generateId(),
       name: name.trim(),
-      enabled,
+      enabled: prompt?.enabled ?? true,
       role,
       content,
       injection_position: injectionPosition,
@@ -165,10 +163,6 @@ export function PresetPromptEditor({ open, onOpenChange, prompt, onSave }: Props
 
           {/* 开关 */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">启用</Label>
-              <Switch checked={enabled} onCheckedChange={setEnabled} />
-            </div>
             <div className="flex items-center justify-between">
               <Label className="text-xs">系统提示词</Label>
               <Switch checked={systemPrompt} onCheckedChange={setSystemPrompt} />

@@ -25,15 +25,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-1 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-1.5 sm:px-4 h-14 flex items-center justify-between gap-1 overflow-hidden">
+          <div className="flex items-center gap-1 sm:gap-4 min-w-0">
             <Link
               to="/"
-              className="font-bold text-sm sm:text-lg text-primary tracking-tight shrink-0"
+              className="font-bold text-sm sm:text-lg text-primary tracking-tight shrink min-w-0 max-w-[96px] truncate sm:max-w-none"
             >
               Space Station
             </Link>
-            <nav className="flex items-center gap-0.5">
+            <nav className="flex items-center gap-0.5 shrink-0">
               {navItems.map((item) => {
                 const active = location.pathname === item.path
                 return (
@@ -72,7 +72,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </nav>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             <Link to="/chat" title="AI 对话">
               <Button variant="ghost" size="icon" className="h-9 w-9">
                 <MessageSquareText className="h-4 w-4" />

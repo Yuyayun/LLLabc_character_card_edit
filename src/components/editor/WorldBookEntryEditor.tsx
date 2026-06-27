@@ -1,3 +1,4 @@
+import { useState } from "react"
 import type { WorldBookEntry } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,23 +17,23 @@ import { Trash2, ChevronDown, ChevronRight, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const positionOptions = [
-  { value: "0", label: "↑Char (角色定义前)" },
-  { value: "1", label: "↓Char (角色定义后)" },
-  { value: "5", label: "↑EM (示例消息顶部)" },
-  { value: "6", label: "↓EM (示例消息底部)" },
-  { value: "2", label: "↑AN (作者注上方)" },
-  { value: "3", label: "↓AN (作者注下方)" },
-  { value: "4-0", label: "@D ⚙️ (深度-系统)" },
-  { value: "4-1", label: "@D 👤 (深度-用户)" },
-  { value: "4-2", label: "@D 🤖 (深度-助理)" },
-  { value: "7", label: "➡️ Outlet" },
+  { value: "0", label: "角色定义之前" },
+  { value: "1", label: "角色定义之后" },
+  { value: "5", label: "示例消息前（↑EM）" },
+  { value: "6", label: "示例消息后（↓EM）" },
+  { value: "2", label: "作者注释之前" },
+  { value: "3", label: "作者注释之后" },
+  { value: "4-0", label: "@D ⚙ [系统]在深度" },
+  { value: "4-1", label: "@D 👤 [用户]在深度" },
+  { value: "4-2", label: "@D 🤖 [AI]在深度" },
+  { value: "7", label: "Outlet" },
 ]
 
 const logicLabels = [
-  { value: "0", label: "AND ANY" },
-  { value: "3", label: "AND ALL" },
-  { value: "1", label: "NOT ALL" },
-  { value: "2", label: "NOT ANY" },
+  { value: "0", label: "与任意" },
+  { value: "3", label: "与全部" },
+  { value: "1", label: "非全部" },
+  { value: "2", label: "非任意" },
 ]
 
 const triStateLabels = [
@@ -49,6 +50,18 @@ const triggerLabels: Record<string, string> = {
   swipe: "滑动",
   regenerate: "重新生成",
   quiet: "静默",
+}
+
+function positionLabel(value: string): string {
+  return positionOptions.find((p) => p.value === value)?.label ?? "角色定义之前"
+}
+
+function logicLabel(value: string): string {
+  return logicLabels.find((l) => l.value === value)?.label ?? "与任意"
+}
+
+function triLabel(value: boolean | null): string {
+  return triStateLabels.find((o) => o.value === triFmt(value))?.label ?? "使用全局"
 }
 
 function triParse(v: string): boolean | null {
@@ -87,309 +100,338 @@ export function WorldBookEntryEditor({
   const atDepthKey = ext.position === 4 ? `4-${role}` : String(ext.position)
   const isAtDepth = ext.position === 4
   const isOutlet = ext.position === 7
+  const [showMatchSources, setShowMatchSources] = useState(false)
 
   return (
     <section className={cn("border rounded-lg", !entry.enabled && "opacity-40 grayscale")}>
       {/* ====== Header Bar ====== */}
-      <div
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/30 rounded-t-lg cursor-pointer flex-wrap"
-        onClick={onToggle}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            onToggle()
-          }
-        }}
-      >
-        {/* Expand chevron */}
-        <button className="p-0.5 shrink-0 text-muted-foreground" tabIndex={-1}>
-          {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        </button>
-
-        {/* Kill switch */}
-        <span onClick={(e) => e.stopPropagation()}>
-          <Switch
-            checked={entry.enabled}
-            onCheckedChange={(v) => onUpdate({ enabled: v })}
-            className="scale-75"
-          />
-        </span>
-
-        {/* Entry state selector (🔵🟢🔗) */}
-        <Select
-          value={entry.constant ? "constant" : entry.vectorized ? "vectorized" : "normal"}
-          onValueChange={(v) => {
-            onUpdate({
-              constant: v === "constant",
-              vectorized: v === "vectorized",
-            })
+      <div className="bg-muted/30 rounded-t-lg">
+        <div
+          className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+          onClick={onToggle}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              onToggle()
+            }
           }}
         >
-          <SelectTrigger className="h-6 w-11 px-1 text-xs shrink-0 [&>svg]:hidden" onClick={(e) => e.stopPropagation()}>
-            <SelectValue>
-              <span>{entry.constant ? "🔵" : entry.vectorized ? "🔗" : "🟢"}</span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="constant" title="常量">🔵</SelectItem>
-            <SelectItem value="normal" title="普通">🟢</SelectItem>
-            <SelectItem value="vectorized" title="向量化">🔗</SelectItem>
-          </SelectContent>
-        </Select>
+          {/* Expand chevron */}
+          <button
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-background/50"
+            tabIndex={-1}
+          >
+            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
 
-        {/* Comment / title */}
-        <input
-          value={entry.comment}
-          onChange={(e) => onUpdate({ comment: e.target.value })}
-          placeholder={`条目 #${entry.id}`}
-          className="min-w-0 flex-1 bg-transparent border-none outline-none text-sm px-1 h-6"
-          onClick={(e) => e.stopPropagation()}
-        />
+          {/* Kill switch */}
+          <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
+            <Switch
+              checked={entry.enabled}
+              onCheckedChange={(v) => onUpdate({ enabled: v })}
+              className="scale-75"
+            />
+          </span>
 
-        {/* Position dropdown */}
-        <Select
-          value={atDepthKey}
-          onValueChange={(v) => {
-            if (!v) return
-            const parts = v.split("-")
-            const pos = Number(parts[0])
-            const r = parts.length > 1 ? Number(parts[1]) : 0
-            onExtPatch({ position: pos, role: pos === 4 ? r : 0 })
-          }}
-        >
-          <SelectTrigger className="h-6 w-9 px-0.5 text-[10px] shrink-0 [&>svg]:hidden" onClick={(e) => e.stopPropagation()}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {positionOptions.map((p) => (
-              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {/* Entry state selector (🔵🟢🔗) */}
+          <Select
+            value={entry.constant ? "constant" : entry.vectorized ? "vectorized" : "normal"}
+            onValueChange={(v) => {
+              onUpdate({
+                constant: v === "constant",
+                vectorized: v === "vectorized",
+              })
+            }}
+          >
+            <SelectTrigger className="h-9 w-12 px-1 text-xs shrink-0 [&>svg]:hidden" onClick={(e) => e.stopPropagation()}>
+              <SelectValue>
+                <span>{entry.constant ? "🔵" : entry.vectorized ? "🔗" : "🟢"}</span>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="constant" title="常量">🔵 常量</SelectItem>
+              <SelectItem value="normal" title="普通">🟢 普通</SelectItem>
+              <SelectItem value="vectorized" title="向量化">🔗 向量化</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {/* Depth (only atDepth) */}
-        {isAtDepth && (
-          <Input
-            type="number"
-            min={0}
-            value={ext.depth}
-            onChange={(e) => onExtPatch({ depth: Number(e.target.value) })}
-            className="h-6 w-12 text-xs px-1 shrink-0"
+          {/* Comment / title */}
+          <input
+            value={entry.comment}
+            onChange={(e) => onUpdate({ comment: e.target.value })}
+            placeholder={`条目 #${entry.id}`}
+            className="min-w-0 flex-1 bg-transparent border-none outline-none text-sm px-1 h-9"
             onClick={(e) => e.stopPropagation()}
           />
-        )}
 
-        {/* Order */}
-        <Input
-          type="number"
-          value={entry.insertion_order}
-          onChange={(e) => onUpdate({ insertion_order: Number(e.target.value) })}
-          className="h-6 w-12 text-xs px-1 shrink-0"
-          onClick={(e) => e.stopPropagation()}
-          title="优先级"
-        />
+          {/* Actions */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={(e) => { e.stopPropagation(); onDuplicate() }}
+            aria-label="复制条目"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-destructive shrink-0"
+            onClick={(e) => { e.stopPropagation(); onRemove() }}
+            aria-label="删除条目"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
 
-        {/* Probability */}
-        <Input
-          type="number"
-          min={0}
-          max={100}
-          value={ext.probability}
-          onChange={(e) => onExtPatch({ probability: Number(e.target.value) })}
-          className="h-6 w-11 text-xs px-1 shrink-0"
-          onClick={(e) => e.stopPropagation()}
-          title="触发概率%"
-        />
+        <div className="grid grid-cols-2 gap-2 px-3 pb-3 sm:grid-cols-[minmax(180px,1.4fr)_80px_80px_80px] sm:gap-3" onClick={(e) => e.stopPropagation()}>
+          {/* Position dropdown */}
+          <div className="col-span-2 space-y-1 sm:col-span-1">
+            <Label className="text-[11px] text-muted-foreground">位置</Label>
+            <Select
+              value={atDepthKey}
+              onValueChange={(v) => {
+                if (!v) return
+                const parts = v.split("-")
+                const pos = Number(parts[0])
+                const r = parts.length > 1 ? Number(parts[1]) : 0
+                onExtPatch({ position: pos, role: pos === 4 ? r : 0 })
+              }}
+            >
+              <SelectTrigger className="h-9 min-w-0 text-xs">
+                <SelectValue>{positionLabel(atDepthKey)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {positionOptions.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Actions */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 shrink-0"
-          onClick={(e) => { e.stopPropagation(); onDuplicate() }}
-          aria-label="复制条目"
-        >
-          <Copy className="h-3 w-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-destructive shrink-0"
-          onClick={(e) => { e.stopPropagation(); onRemove() }}
-          aria-label="删除条目"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+          {/* Depth (only atDepth) */}
+          {isAtDepth && (
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">深度</Label>
+              <Input
+                type="number"
+                min={0}
+                value={ext.depth}
+                onChange={(e) => onExtPatch({ depth: Number(e.target.value) })}
+                className="h-9 text-xs"
+              />
+            </div>
+          )}
+
+          {/* Order */}
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">顺序</Label>
+            <Input
+              type="number"
+              value={entry.insertion_order}
+              onChange={(e) => onUpdate({ insertion_order: Number(e.target.value) })}
+              className="h-9 text-xs"
+            />
+          </div>
+
+          {/* Probability */}
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">触发 %</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={ext.probability}
+              onChange={(e) => onExtPatch({ probability: Number(e.target.value) })}
+              className="h-9 text-xs"
+            />
+          </div>
+        </div>
       </div>
 
       {/* ====== Expanded Drawer ====== */}
       {isOpen && (
         <div className="p-4 space-y-4 border-t">
-          {/* Keywords */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">主触发词 (逗号分隔)</Label>
-              <Input
-                value={entry.keys.join(", ")}
-                onChange={(e) =>
-                  onUpdate({
-                    keys: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                  })
-                }
-              />
+          {/* Trigger conditions */}
+          <section className="space-y-3">
+            <h4 className="text-xs font-medium">触发条件</h4>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_120px_minmax(0,1fr)]">
+              <div className="space-y-1.5">
+                <Label className="text-xs">主要关键字</Label>
+                <Input
+                  value={entry.keys.join(", ")}
+                  onChange={(e) =>
+                    onUpdate({
+                      keys: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                  placeholder="逗号分隔列表"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">逻辑</Label>
+                <Select
+                  value={String(entry.selectiveLogic)}
+                  onValueChange={(v) => onUpdate({ selectiveLogic: Number(v) })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue>{logicLabel(String(entry.selectiveLogic))}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {logicLabels.map((l) => (
+                      <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">可选过滤器</Label>
+                <Input
+                  value={entry.secondary_keys.join(", ")}
+                  onChange={(e) =>
+                    onUpdate({
+                      secondary_keys: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                  placeholder="逗号分隔列表（如果为空则忽略）"
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">二级触发词 (逗号分隔)</Label>
-              <Input
-                value={entry.secondary_keys.join(", ")}
-                onChange={(e) =>
-                  onUpdate({
-                    secondary_keys: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                  })
-                }
-              />
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <div className="flex items-center gap-1.5">
+                <Checkbox
+                  checked={entry.selective}
+                  onCheckedChange={(v) => onUpdate({ selective: !!v })}
+                  id={`sel-${entry.id}`}
+                />
+                <Label htmlFor={`sel-${entry.id}`} className="text-xs">使用可选过滤器</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Checkbox
+                  checked={ext.useProbability}
+                  onCheckedChange={(v) => onExtPatch({ useProbability: !!v })}
+                  id={`prob-${entry.id}`}
+                />
+                <Label htmlFor={`prob-${entry.id}`} className="text-xs">启用概率</Label>
+              </div>
             </div>
-          </div>
+          </section>
 
-          {/* Logic & Toggles */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="space-y-1.5">
-              <Label className="text-xs">选择性逻辑</Label>
-              <Select
-                value={String(entry.selectiveLogic)}
-                onValueChange={(v) => onUpdate({ selectiveLogic: Number(v) })}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {logicLabels.map((l) => (
-                    <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Entry overrides */}
+          <section className="space-y-3 border-t pt-4">
+            <h4 className="text-xs font-medium">条目覆盖</h4>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {isOutlet && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">出口名称</Label>
+                  <Input
+                    value={ext.outlet_name}
+                    onChange={(e) => onExtPatch({ outlet_name: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label className="text-xs">扫描深度</Label>
+                <Input
+                  type="number"
+                  value={ext.scan_depth ?? ""}
+                  onChange={(e) =>
+                    onExtPatch({ scan_depth: e.target.value === "" ? null : Number(e.target.value) })
+                  }
+                  placeholder="全局"
+                  className="h-8 text-xs"
+                />
+              </div>
+              {([
+                ["case_sensitive", "区分大小写"],
+                ["match_whole_words", "完整单词"],
+                ["use_group_scoring", "分组计分"],
+              ] as const).map(([key, label]) => {
+                const val: boolean | null = ext[key]
+                return (
+                  <div key={key} className="space-y-1.5">
+                    <Label className="text-xs">{label}</Label>
+                    <Select
+                      value={triFmt(val as boolean | null)}
+                      onValueChange={(v) => { if (v) onExtPatch({ [key]: triParse(v) }) }}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue>{triLabel(val as boolean | null)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {triStateLabels.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )
+              })}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Automation ID</Label>
+                <Input
+                  value={ext.automation_id}
+                  onChange={(e) => onExtPatch({ automation_id: e.target.value })}
+                  className="h-8 text-xs"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 pt-5">
-              <Checkbox
-                checked={entry.selective}
-                onCheckedChange={(v) => onUpdate({ selective: !!v })}
-                id={`sel-${entry.id}`}
-              />
-              <Label htmlFor={`sel-${entry.id}`} className="text-xs">启用二级触发词</Label>
-            </div>
-            <div className="flex items-center gap-1.5 pt-5">
-              <Checkbox
-                checked={ext.useProbability}
-                onCheckedChange={(v) => onExtPatch({ useProbability: !!v })}
-                id={`prob-${entry.id}`}
-              />
-              <Label htmlFor={`prob-${entry.id}`} className="text-xs">启用概率</Label>
-            </div>
-          </div>
+          </section>
 
-          {/* Content */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">
-              条目内容
-              <span className="text-muted-foreground ml-2">UID: {entry.id}</span>
-            </Label>
+          {/* Content + recursion */}
+          <section className="space-y-3 border-t pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label className="text-xs">
+                条目内容
+                <span className="text-muted-foreground ml-2">UID: {entry.id}</span>
+              </Label>
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Checkbox
+                    checked={entry.addMemo}
+                    onCheckedChange={(v) => onUpdate({ addMemo: !!v })}
+                    id={`memo-${entry.id}`}
+                  />
+                  <Label htmlFor={`memo-${entry.id}`} className="text-xs">添加备注</Label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Checkbox
+                    checked={ext.exclude_recursion}
+                    onCheckedChange={(v) => onExtPatch({ exclude_recursion: !!v })}
+                    id={`exr-${entry.id}`}
+                  />
+                  <Label htmlFor={`exr-${entry.id}`} className="text-xs">不可递归</Label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Checkbox
+                    checked={ext.prevent_recursion}
+                    onCheckedChange={(v) => onExtPatch({ prevent_recursion: !!v })}
+                    id={`prr-${entry.id}`}
+                  />
+                  <Label htmlFor={`prr-${entry.id}`} className="text-xs">防止进一步递归</Label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Checkbox
+                    checked={ext.ignore_budget}
+                    onCheckedChange={(v) => onExtPatch({ ignore_budget: !!v })}
+                    id={`ib-${entry.id}`}
+                  />
+                  <Label htmlFor={`ib-${entry.id}`} className="text-xs">忽略预算</Label>
+                </div>
+              </div>
+            </div>
             <Textarea
               value={entry.content}
               onChange={(e) => onUpdate({ content: e.target.value })}
               rows={6}
               className="font-mono text-xs h-[140px] overflow-y-auto resize-y min-h-[100px]"
             />
-            <div className="flex items-center gap-1.5">
-              <Checkbox
-                checked={entry.addMemo}
-                onCheckedChange={(v) => onUpdate({ addMemo: !!v })}
-                id={`memo-${entry.id}`}
-              />
-              <Label htmlFor={`memo-${entry.id}`} className="text-xs">添加备注</Label>
-            </div>
-          </div>
-
-          {/* Overrides */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {isOutlet && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">出口名称</Label>
-                <Input
-                  value={ext.outlet_name}
-                  onChange={(e) => onExtPatch({ outlet_name: e.target.value })}
-                  className="h-8 text-xs"
-                />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label className="text-xs">扫描深度覆盖</Label>
-              <Input
-                type="number"
-                value={ext.scan_depth ?? ""}
-                onChange={(e) =>
-                  onExtPatch({ scan_depth: e.target.value === "" ? null : Number(e.target.value) })
-                }
-                placeholder="全局"
-                className="h-8 text-xs"
-              />
-            </div>
-            {([
-              ["case_sensitive", "区分大小写"],
-              ["match_whole_words", "全词匹配"],
-              ["use_group_scoring", "分组计分"],
-            ] as const).map(([key, label]) => {
-              const val: boolean | null = ext[key]
-              return (
-                <div key={key} className="space-y-1.5">
-                  <Label className="text-xs">{label}</Label>
-                  <Select
-                    value={triFmt(val as boolean | null)}
-                    onValueChange={(v) => { if (v) onExtPatch({ [key]: triParse(v) }) }}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {triStateLabels.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Recursion */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-1.5">
-              <Checkbox
-                checked={ext.exclude_recursion}
-                onCheckedChange={(v) => onExtPatch({ exclude_recursion: !!v })}
-                id={`exr-${entry.id}`}
-              />
-              <Label htmlFor={`exr-${entry.id}`} className="text-xs">递归排除</Label>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Checkbox
-                checked={ext.prevent_recursion}
-                onCheckedChange={(v) => onExtPatch({ prevent_recursion: !!v })}
-                id={`prr-${entry.id}`}
-              />
-              <Label htmlFor={`prr-${entry.id}`} className="text-xs">防止递归</Label>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Checkbox
-                checked={ext.ignore_budget}
-                onCheckedChange={(v) => onExtPatch({ ignore_budget: !!v })}
-                id={`ib-${entry.id}`}
-              />
-              <Label htmlFor={`ib-${entry.id}`} className="text-xs">忽略预算</Label>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">递归延迟层级</Label>
+            <div className="max-w-[180px] space-y-1.5">
+              <Label className="text-xs">延迟到递归</Label>
               <Input
                 type="number"
                 min={0}
@@ -398,10 +440,10 @@ export function WorldBookEntryEditor({
                 className="h-8 text-xs"
               />
             </div>
-          </div>
+          </section>
 
           {/* Group & Timed effects */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <section className="grid grid-cols-1 gap-4 border-t pt-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs">分组</Label>
               <div className="flex items-center gap-2">
@@ -448,33 +490,10 @@ export function WorldBookEntryEditor({
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Match sources */}
-          <div>
-            <Label className="text-xs mb-1.5 block">匹配扫描范围</Label>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {([
-                ["match_persona_description", "角色描述"],
-                ["match_character_description", "角色定义"],
-                ["match_character_personality", "角色性格"],
-                ["match_character_depth_prompt", "深度提示"],
-                ["match_scenario", "场景"],
-                ["match_creator_notes", "作者备注"],
-              ] as const).map(([key, label]) => (
-                <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs">
-                  <Checkbox
-                    checked={ext[key] as boolean}
-                    onCheckedChange={(v) => onExtPatch({ [key]: !!v })}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
+          </section>
 
           {/* Character filter + Triggers */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <section className="grid grid-cols-1 gap-4 border-t pt-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs">角色过滤</Label>
               <div className="flex items-center gap-2">
@@ -528,17 +547,39 @@ export function WorldBookEntryEditor({
                 })}
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Automation ID */}
-          <div className="space-y-1.5 max-w-xs">
-            <Label className="text-xs">Automation ID</Label>
-            <Input
-              value={ext.automation_id}
-              onChange={(e) => onExtPatch({ automation_id: e.target.value })}
-              className="h-8 text-xs"
-            />
-          </div>
+          {/* Match sources */}
+          <section className="border-t pt-4">
+            <button
+              type="button"
+              className="flex items-center gap-1 text-xs font-medium"
+              onClick={() => setShowMatchSources(!showMatchSources)}
+            >
+              {showMatchSources ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              额外匹配来源
+            </button>
+            {showMatchSources && (
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                {([
+                  ["match_persona_description", "角色描述"],
+                  ["match_character_description", "角色定义"],
+                  ["match_character_personality", "角色性格"],
+                  ["match_character_depth_prompt", "深度提示"],
+                  ["match_scenario", "场景"],
+                  ["match_creator_notes", "作者备注"],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs">
+                    <Checkbox
+                      checked={ext[key] as boolean}
+                      onCheckedChange={(v) => onExtPatch({ [key]: !!v })}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       )}
     </section>

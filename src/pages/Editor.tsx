@@ -139,36 +139,36 @@ export function Editor() {
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
       {/* 顶栏 */}
-      <header className="flex items-center justify-between px-4 py-2.5 border-b shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => {
+      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 sm:px-4 py-2.5 border-b shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1 basis-full sm:basis-auto">
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
             if (dirtyRef.current && !confirm("有未保存的更改，确认离开？")) return
             navigate("/")
           }}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="min-w-0">
+          <div className="min-w-[140px] flex-1 sm:min-w-0">
             <Input
               value={card.name}
               onChange={(e) => handleChange({ ...card, name: e.target.value })}
               placeholder="角色名"
-              className="text-sm font-semibold border-none px-0 h-auto max-w-[200px]"
+              className="w-full text-sm font-semibold border-none px-0 h-auto sm:max-w-[200px]"
             />
             {card.character_version && (
               <p className="text-[10px] text-muted-foreground">{card.character_version}</p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Button onClick={handleSave} size="sm" className="h-8 text-xs">
+        <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+          <Button onClick={handleSave} size="sm" className="h-9 text-xs">
             <Save className="h-3.5 w-3.5 mr-1" />
             保存
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleExportJSON}>
+          <Button variant="outline" size="sm" className="h-9 text-xs" onClick={handleExportJSON}>
             <FileJson className="h-3.5 w-3.5 mr-1" />
             JSON
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleExportPNG}>
+          <Button variant="outline" size="sm" className="h-9 text-xs" onClick={handleExportPNG}>
             <Image className="h-3.5 w-3.5 mr-1" />
             PNG
           </Button>
@@ -205,7 +205,7 @@ export function Editor() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-9 w-9"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               title={sidebarOpen ? "收起侧栏" : "展开侧栏"}
             >

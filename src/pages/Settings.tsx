@@ -206,23 +206,25 @@ export function Settings() {
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
       {/* 分段按钮导航 */}
-      <div className="flex items-center gap-2 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold mr-2">设置</h1>
-        <div className="flex items-center gap-0.5 bg-muted/50 rounded-md p-0.5">
-          {sections.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setSection(s.id)}
-              className={cn(
-                "px-2.5 py-1 text-xs sm:text-sm rounded-sm transition-colors whitespace-nowrap",
-                section === s.id
-                  ? "bg-background text-foreground font-medium shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {s.label}
-            </button>
-          ))}
+      <div className="flex flex-col items-start gap-2 mb-6 sm:flex-row sm:items-center">
+        <h1 className="text-xl sm:text-2xl font-bold sm:mr-2">设置</h1>
+        <div className="w-full overflow-x-auto sm:w-auto">
+          <div className="flex min-w-max items-center gap-0.5 bg-muted/50 rounded-md p-0.5">
+            {sections.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSection(s.id)}
+                className={cn(
+                  "px-2.5 py-1 text-xs sm:text-sm rounded-sm transition-colors whitespace-nowrap",
+                  section === s.id
+                    ? "bg-background text-foreground font-medium shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -387,7 +389,7 @@ export function Settings() {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
                     type="password"
                     placeholder="输入封锁 Key..."
@@ -407,12 +409,12 @@ export function Settings() {
                         setKeyChecking(false);
                       }
                     }}
-                    className="h-8 text-xs flex-1"
+                    className="h-9 min-w-0 text-xs flex-1 sm:h-8"
                     disabled={keyChecking}
                   />
                   <Button
                     size="sm"
-                    className="h-8 text-xs shrink-0"
+                    className="h-9 w-full text-xs shrink-0 sm:h-8 sm:w-auto"
                     disabled={keyChecking || !keyInput.trim()}
                     onClick={async () => {
                       setKeyChecking(true);
@@ -496,7 +498,7 @@ export function Settings() {
                           ) : (
                             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
                           )}
-                          <span>
+                          <span className="min-w-0">
                             {connected === true
                               ? "已连接到 GitHub"
                               : connected === false
@@ -504,7 +506,7 @@ export function Settings() {
                                 : "检测连接中..."}
                           </span>
                           {config.lastSyncAt && (
-                            <span className="ml-auto text-[10px] opacity-70">
+                            <span className="ml-auto shrink-0 text-[10px] opacity-70">
                               上次同步：
                               {new Date(config.lastSyncAt).toLocaleString(
                                 "zh-CN",
@@ -534,7 +536,7 @@ export function Settings() {
                               updateConfig({ githubToken: e.target.value });
                               setTokenCheck(null);
                             }}
-                            className="h-8 text-xs font-mono flex-1"
+                            className="h-8 min-w-0 text-xs font-mono flex-1"
                           />
                           <Button
                             variant="outline"
@@ -598,7 +600,7 @@ export function Settings() {
                             onChange={(e) =>
                               updateConfig({ gistId: e.target.value })
                             }
-                            className="h-8 text-xs font-mono flex-1"
+                            className="h-8 min-w-0 text-xs font-mono flex-1"
                           />
                           <Button
                             variant="outline"
@@ -692,6 +694,23 @@ export function Settings() {
             <CardTitle className="text-sm sm:text-base">更新日志</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.2
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-06-27
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>手机端基础布局优化：导航、首页操作区、编辑页顶栏不再拥挤</li>
+                <li>世界书条目编辑器贴近酒馆字段结构，位置与逻辑显示更清楚</li>
+                <li>预设编辑器采样、模板、提示词管理信息结构优化</li>
+                <li>清理提示词编辑中的底层启用字段文案，并修复 CSS 构建警告</li>
+              </ul>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
@@ -987,7 +1006,7 @@ export function Settings() {
             <div className="border-t pt-4">
               <p className="text-xs text-muted-foreground">
                 <strong>下个版本计划（可能，随时砍）：</strong>API 配置管理、
-                预设管理、AI 对话聊天界面、角色卡写作辅助与测试功能。
+                AI 对话聊天界面、角色卡写作辅助与测试功能。
               </p>
             </div>
           </CardContent>
