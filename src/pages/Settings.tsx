@@ -15,6 +15,7 @@ import {
   importAllData,
   uploadToGist,
   verifyToken,
+  type CloudSyncProgress,
 } from "@/lib/cloudSync";
 import { db } from "@/lib/db";
 import { clearUnlock, isPresetUnlocked, verifyKey } from "@/lib/lockKey";
@@ -79,6 +80,9 @@ export function Settings() {
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [connected, setConnected] = useState<boolean | null>(null);
+  const [syncProgress, setSyncProgress] = useState<CloudSyncProgress | null>(
+    null,
+  );
 
   // 预设解锁状态
   const [presetUnlocked, setPresetUnlocked] = useState<boolean | null>(null);
@@ -155,12 +159,14 @@ export function Settings() {
       return;
     }
     setCreating(true);
+    setSyncProgress({ percent: 8, step: "读取本地数据" });
     try {
       const data = await exportAllData();
-      const gistId = await createGist(config.githubToken, data);
+      const gistId = await createGist(config.githubToken, data, setSyncProgress);
       updateConfig({ gistId, lastSyncAt: new Date() });
       toast.success("Gist 已创建，数据已上传");
     } catch (e) {
+      setSyncProgress({ percent: 100, step: "创建失败" });
       toast.error(e instanceof Error ? e.message : "创建 Gist 失败");
     } finally {
       setCreating(false);
@@ -173,10 +179,12 @@ export function Settings() {
       return;
     }
     setUploading(true);
+    setSyncProgress({ percent: 0, step: "准备上传" });
     try {
-      await uploadToGist(config);
+      await uploadToGist(config, setSyncProgress);
       toast.success("已上传到云端");
     } catch (e) {
+      setSyncProgress({ percent: 100, step: "上传失败" });
       toast.error(e instanceof Error ? e.message : "上传失败");
     } finally {
       setUploading(false);
@@ -191,12 +199,14 @@ export function Settings() {
     if (!confirm("云端下载将覆盖本地全部数据，建议先手动备份。确认继续？"))
       return;
     setDownloading(true);
+    setSyncProgress({ percent: 0, step: "准备下载" });
     try {
-      const data = await downloadFromGist(config);
-      await importAllData(data);
+      const data = await downloadFromGist(config, setSyncProgress);
+      await importAllData(data, setSyncProgress);
       updateConfig({ lastSyncAt: new Date() });
       toast.success("已从云端同步数据");
     } catch (e) {
+      setSyncProgress({ percent: 100, step: "下载失败" });
       toast.error(e instanceof Error ? e.message : "下载失败");
     } finally {
       setDownloading(false);
@@ -675,6 +685,26 @@ export function Settings() {
                           手动下载
                         </Button>
                       </div>
+                      {syncProgress && (
+                        <div className="space-y-1.5 rounded-md border bg-muted/25 px-3 py-2">
+                          <div className="flex items-center justify-between gap-3 text-[11px]">
+                            <span className="min-w-0 truncate text-muted-foreground">
+                              {syncProgress.step}
+                            </span>
+                            <span className="shrink-0 font-medium">
+                              {Math.round(syncProgress.percent)}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                            <div
+                              className="h-full rounded-full bg-primary transition-all duration-200"
+                              style={{
+                                width: `${Math.min(100, Math.max(0, syncProgress.percent))}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
                       <p className="text-[10px] text-muted-foreground">
                         手动下载会覆盖本地全部数据，建议先备份。上传不会删除云端原有数据。
                       </p>

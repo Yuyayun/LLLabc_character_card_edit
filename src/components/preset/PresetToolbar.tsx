@@ -1,7 +1,7 @@
 import { useState } from "react"
 import type { PresetPrompt } from "@/types"
 import { Button } from "@/components/ui/button"
-import { ArrowRightToLine, Link, Plus, Trash2 } from "lucide-react"
+import { ArrowRightToLine, Copy, Link, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   onInsertFromPool: (identifier: string) => void
   onNewPrompt: () => void
   onMoveToPosition: () => void
+  onCopyFromPreset: () => void
   selectedIds: Set<string>
 }
 
@@ -19,6 +20,7 @@ export function PresetToolbar({
   onInsertFromPool,
   onNewPrompt,
   onMoveToPosition,
+  onCopyFromPreset,
   selectedIds,
 }: Props) {
   const [selectedPoolId, setSelectedPoolId] = useState("")
@@ -63,6 +65,16 @@ export function PresetToolbar({
       >
         <Link className="h-3.5 w-3.5 mr-1" />
         插入
+      </Button>
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 flex-1 text-xs sm:h-8 sm:flex-none"
+        onClick={onCopyFromPreset}
+      >
+        <Copy className="h-3.5 w-3.5 mr-1" />
+        复制
       </Button>
 
       <Button

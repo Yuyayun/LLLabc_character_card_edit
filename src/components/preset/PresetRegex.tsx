@@ -12,12 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react"
+import { Copy, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react"
 import { cn, generateId } from "@/lib/utils"
 
 interface Props {
   scripts: RegexScript[]
   onChange: (scripts: RegexScript[]) => void
+  onCopyFromPreset?: () => void
 }
 
 const placementLabels: { value: number; label: string }[] = [
@@ -29,7 +30,7 @@ const placementLabels: { value: number; label: string }[] = [
   { value: 6, label: "推理" },
 ]
 
-export function PresetRegex({ scripts, onChange }: Props) {
+export function PresetRegex({ scripts, onChange, onCopyFromPreset }: Props) {
   function addScript() {
     const newScript: RegexScript = {
       id: generateId(),
@@ -80,10 +81,18 @@ export function PresetRegex({ scripts, onChange }: Props) {
         <span className="text-xs text-muted-foreground">
           共 {scripts.length} 条正则脚本
         </span>
-        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addScript}>
-          <Plus className="h-3.5 w-3.5 mr-1" />
-          添加脚本
-        </Button>
+        <div className="flex items-center gap-2">
+          {onCopyFromPreset && (
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onCopyFromPreset}>
+              <Copy className="h-3.5 w-3.5 mr-1" />
+              从预设复制
+            </Button>
+          )}
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addScript}>
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            添加脚本
+          </Button>
+        </div>
       </div>
 
       {scripts.length === 0 ? (

@@ -8,7 +8,7 @@ import {
   ArrowLeft, Save, Download, Upload,
   PanelLeftClose, PanelLeft,
   SlidersHorizontal, MessageSquareText,
-  ArrowRightToLine, Braces, FileText,
+  ArrowRightToLine, Braces, Copy, FileText,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -21,6 +21,7 @@ import { PresetPromptPool } from "@/components/preset/PresetPromptPool"
 import { PresetPromptEditor } from "@/components/preset/PresetPromptEditor"
 import { PresetToolbar } from "@/components/preset/PresetToolbar"
 import { PresetRegex } from "@/components/preset/PresetRegex"
+import { PresetCopyDialog } from "@/components/preset/PresetCopyDialog"
 import type { RegexScript } from "@/types"
 import {
   Dialog,
@@ -52,6 +53,7 @@ export function PresetEditor() {
   const [moveOpen, setMoveOpen] = useState(false)
   const [moveSearch, setMoveSearch] = useState("")
   const [moveSelectedId, setMoveSelectedId] = useState<string | null>(null)
+  const [copyOpen, setCopyOpen] = useState(false)
 
   // 从 prompts + prompt_order 初始化列表顺序
   function buildOrder(p: Preset): PresetPromptOrder[] {
@@ -240,6 +242,68 @@ export function PresetEditor() {
     setMoveOpen(false)
   }
 
+  function insertAfter<T>(
+    items: T[],
+    insertItems: T[],
+    afterKey: string | null,
+    getKey: (item: T) => string
+  ): T[] {
+    if (insertItems.length === 0) return items
+    const updated = [...items]
+    if (afterKey === null) {
+      updated.splice(0, 0, ...insertItems)
+      return updated
+    }
+    const idx = updated.findIndex((item) => getKey(item) === afterKey)
+    if (idx < 0) {
+      updated.push(...insertItems)
+      return updated
+    }
+    updated.splice(idx + 1, 0, ...insertItems)
+    return updated
+  }
+
+  function handleCopyFromPreset(payload: {
+    prompts: PresetPrompt[]
+    promptInsertAfter: string | null
+    regexScripts: RegexScript[]
+    regexInsertAfter: string | null
+  }) {
+    if (!preset) return
+
+    const nextOrderItems = payload.prompts.map((prompt) => ({
+      identifier: prompt.identifier,
+      enabled: prompt.enabled,
+    }))
+    const nextOrder = insertAfter(
+      order,
+      nextOrderItems,
+      payload.promptInsertAfter,
+      (item) => item.identifier
+    )
+    const currentRegex =
+      ((preset.extensions?.regex_scripts as RegexScript[] | undefined) ?? [])
+    const nextRegex = insertAfter(
+      currentRegex,
+      payload.regexScripts,
+      payload.regexInsertAfter,
+      (script) => script.id
+    )
+
+    handleChange({
+      ...preset,
+      prompts: [...preset.prompts, ...payload.prompts],
+      extensions: {
+        ...(preset.extensions ?? {}),
+        regex_scripts: nextRegex as unknown as Record<string, unknown>,
+      },
+    })
+    setOrder(nextOrder)
+    toast.success(
+      `已复制 ${payload.prompts.length} 条提示词、${payload.regexScripts.length} 条正则`
+    )
+  }
+
   const promptMap = new Map(preset?.prompts.map((p) => [p.identifier, p]) ?? [])
 
   // 移动到 Dialog 的过滤池列表
@@ -262,8 +326,8 @@ export function PresetEditor() {
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
       {/* 顶栏 */}
-      <header className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
+      <header className="flex flex-col gap-2 px-3 py-2.5 border-b shrink-0 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <div className="flex w-full items-center gap-2 min-w-0 sm:flex-1">
           <Button
             variant="ghost"
             size="icon"
@@ -276,13 +340,13 @@ export function PresetEditor() {
             value={preset.name}
             onChange={(e) => handleChange({ ...preset, name: e.target.value })}
             placeholder="预设名称"
-            className="text-sm sm:text-lg font-bold border-none px-0 h-auto max-w-[140px] sm:max-w-[320px] flex-1 sm:flex-none"
+            className="min-w-0 flex-1 text-sm font-bold border-none px-0 h-auto sm:max-w-[680px] sm:text-lg"
           />
           <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">
             {preset.prompts.length} 条提示词
           </span>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex w-full items-center gap-1.5 shrink-0 sm:w-auto">
           <Button onClick={handleSave} size="sm" className="h-8 text-xs">
             <Save className="h-3.5 w-3.5 mr-1" />
             保存
@@ -317,6 +381,13 @@ export function PresetEditor() {
           >
             <ArrowRightToLine className="h-3.5 w-3.5 shrink-0" />
             移动到
+          </button>
+          <button
+            onClick={() => setCopyOpen(true)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm px-2.5 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
+          >
+            <Copy className="h-3.5 w-3.5 shrink-0" />
+            复制
           </button>
           <button
             onClick={() => scrollToSection("section-sampler")}
@@ -363,6 +434,14 @@ export function PresetEditor() {
           >
             <ArrowRightToLine className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">移动到</span>
+          </button>
+          <button
+            onClick={() => setCopyOpen(true)}
+            title="从其他预设复制"
+            className="flex items-center justify-center sm:justify-start gap-1.5 px-1 sm:px-2.5 py-2 text-xs transition-colors mx-0.5 sm:mx-1 rounded-sm whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-background/50"
+          >
+            <Copy className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">复制</span>
           </button>
 
           <hr className="my-1 mx-2 border-border" />
@@ -447,6 +526,7 @@ export function PresetEditor() {
             <div id="section-regex">
               <PresetRegex
                 scripts={(preset.extensions?.regex_scripts as RegexScript[]) ?? []}
+                onCopyFromPreset={() => setCopyOpen(true)}
                 onChange={(scripts) => {
                   handleChange({
                     ...preset,
@@ -500,6 +580,7 @@ export function PresetEditor() {
                 onInsertFromPool={handleInsertFromPool}
                 onNewPrompt={handleNewPrompt}
                 onMoveToPosition={openMoveDialog}
+                onCopyFromPreset={() => setCopyOpen(true)}
                 selectedIds={selectedIds}
               />
 
@@ -542,6 +623,16 @@ export function PresetEditor() {
         onOpenChange={setEditorOpen}
         prompt={editingPrompt}
         onSave={handleSavePrompt}
+      />
+
+      <PresetCopyDialog
+        open={copyOpen}
+        onOpenChange={setCopyOpen}
+        currentPresetId={preset.id}
+        targetPrompts={preset.prompts}
+        targetOrder={order}
+        targetRegexScripts={(preset.extensions?.regex_scripts as RegexScript[]) ?? []}
+        onCopy={handleCopyFromPreset}
       />
 
       {/* 移动到指定位置 Dialog */}

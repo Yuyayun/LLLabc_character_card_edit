@@ -107,7 +107,7 @@ export function WorldBookEntryEditor({
       {/* ====== Header Bar ====== */}
       <div className="bg-muted/30 rounded-t-lg">
         <div
-          className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+          className="flex flex-wrap items-center gap-2 px-3 py-2 cursor-pointer"
           onClick={onToggle}
           role="button"
           tabIndex={0}
@@ -167,24 +167,26 @@ export function WorldBookEntryEditor({
           />
 
           {/* Actions */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            onClick={(e) => { e.stopPropagation(); onDuplicate() }}
-            aria-label="复制条目"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-destructive shrink-0"
-            onClick={(e) => { e.stopPropagation(); onRemove() }}
-            aria-label="删除条目"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex basis-full justify-end gap-1 sm:basis-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={(e) => { e.stopPropagation(); onDuplicate() }}
+              aria-label="复制条目"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-destructive shrink-0"
+              onClick={(e) => { e.stopPropagation(); onRemove() }}
+              aria-label="删除条目"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 px-3 pb-3 sm:grid-cols-[minmax(180px,1.4fr)_80px_80px_80px] sm:gap-3" onClick={(e) => e.stopPropagation()}>

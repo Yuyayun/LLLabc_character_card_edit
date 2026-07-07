@@ -288,4 +288,5 @@ export interface CloudData {
   apiConfigs: ApiConfig[]
   chatSessions: ChatSession[]
   memos: Memo[]
+  settings?: AppSetting[]
 }
