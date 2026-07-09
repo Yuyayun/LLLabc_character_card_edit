@@ -1,73 +1,34 @@
-# React + TypeScript + Vite
+# 空间站 Space Station
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SillyTavern 角色卡、世界书与预设编辑器。项目是纯前端 SPA/PWA，数据保存在浏览器 IndexedDB 中，可部署到 GitHub Pages。
 
-Currently, two official plugins are available:
+## 功能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 角色卡创建、导入、导出、备份与恢复
+- 角色基础信息、头像、开场白、正则脚本和深度提示编辑
+- 世界书条目编辑、排序、复制和触发条件管理
+- AI 预设采样参数、模板、提示词条目、提示词池和正则脚本编辑
+- 通过 GitHub Gist 手动云同步本地数据
 
-## React Compiler
+## 本地开发
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev -- --host localhost --port 5173
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+本地调试优先使用 `http://localhost:5173/`。如果浏览器曾经注册过旧版 PWA，请先清理该域名下的 Service Worker 和站点缓存，避免旧资源干扰字体、样式和构建文件。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 构建
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
 ```
+
+## 部署
+
+```bash
+npm run deploy
+```
+
+部署目标为 GitHub Pages，生产构建产物位于 `dist/`。

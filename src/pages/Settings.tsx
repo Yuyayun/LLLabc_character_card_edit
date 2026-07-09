@@ -727,6 +727,24 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.3
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-07-07
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>预设编辑器新增从其他预设复制提示词条目与正则脚本</li>
+                <li>复制支持多选、指定插入位置，并自动生成新 ID 与副本名称</li>
+                <li>云同步上传、下载和创建 Gist 时新增步骤与百分比进度提示</li>
+                <li>优化预设标题和世界书条目在手机端、桌面端的显示空间</li>
+                <li>全局字体切换本轮暂缓发布，当前版本继续使用固定字体方案</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.1.2
                 </span>
                 <span className="text-xs text-muted-foreground">

@@ -1,4 +1,4 @@
-# 角色卡编辑器 — CSS 类名参考手册
+# 空间站 Space Station — CSS 类名参考手册
 
 > 本文档列出项目中所有自定义 CSS 类名（Tailwind 工具类），按功能区域分组，每类附中文注释。方便使用外部工具编写 CSS 后重新导入。
 
@@ -6,10 +6,10 @@
 
 ## 一、CSS 自定义属性 (src/index.css)
 
-### 1.1 亮色主题 (:root) — Apple Style
+### 1.1 亮色主题 (:root)
 
 ```css
-/* 苹果经典底层灰（衬托卡片纯白） */
+/* 浅灰底层（衬托卡片纯白） */
 --background: #F5F5F7;
 /* 页面前景/文字色 */
 --foreground: #1D1D1F;
@@ -19,7 +19,7 @@
 /* 弹出层背景 — 毛玻璃半透明 */
 --popover: rgba(255, 255, 255, 0.85);
 --popover-foreground: #1D1D1F;
-/* 主色调 — Apple 系统蓝 */
+/* 主色调 — 系统蓝 */
 --primary: #007AFF;
 --primary-foreground: #FFFFFF;
 /* 次要色 */
@@ -31,7 +31,7 @@
 /* 悬停强调色 */
 --accent: #F2F2F7;
 --accent-foreground: #1D1D1F;
-/* 危险/删除色 — Apple 红 */
+/* 危险/删除色 — 高亮红 */
 --destructive: #FF3B30;
 --destructive-foreground: #FFFFFF;
 /* 极浅边框，模拟 Retina 细线 */
@@ -39,11 +39,11 @@
 --input: rgba(60, 60, 67, 0.12);
 /* 焦点外环 */
 --ring: rgba(0, 122, 255, 0.3);
-/* 苹果风大圆角 */
+/* 全局圆角 */
 --radius: 0.85rem;
 ```
 
-### 1.2 暗色主题 (.dark) — Apple Style
+### 1.2 暗色主题 (.dark)
 
 ```css
 .dark {
@@ -77,7 +77,7 @@
 
 | 主题名       | 亮色 primary | 暗色 primary |
 | ------------ | ------------ | ------------ |
-| Apple 蓝 indigo | `#007AFF`    | `#0A84FF`    |
+| 系统蓝 indigo | `#007AFF`    | `#0A84FF`    |
 | 天蓝 sky     | `#0ea5e9`    | `#38bdf8`    |
 | 翠绿 emerald | `#10b981`    | `#34d399`    |
 | 玫瑰 rose    | `#f43f5e`    | `#fb7185`    |
@@ -103,7 +103,7 @@ body {
 }
 ```
 
-### 1.5 Apple 风格覆写规则
+### 1.5 交互与质感覆写规则
 
 ```css
 /* 卡片悬浮阴影（弥散阴影） */
@@ -113,7 +113,7 @@ body {
 }
 .dark .bg-card { box-shadow: 0 4px 24px -8px rgba(0,0,0,0.3); }
 
-/* 按钮点击缩放反馈（类似 iOS 回弹） */
+/* 按钮点击缩放反馈 */
 button { transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important; }
 button:active:not(:disabled) { transform: scale(0.96); }
 
