@@ -96,8 +96,8 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  /* 惠文仿宋（正文）→ SF + 苹方原生字体栈，抗锯齿渲染 */
-  font-family: "Huiwen-Fangsong", -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  /* 由 FontProvider 写入根变量；默认仍是惠文仿宋 → 系统字体栈 */
+  font-family: var(--app-font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

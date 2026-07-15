@@ -1,10 +1,13 @@
 @import url("https://fontsapi.zeoseven.com/440/main/result.css");
+@import url("https://fontsapi.zeoseven.com/35/main/result.css");
+@import url("https://fontsapi.zeoseven.com/3/main/result.css");
 
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --font-sans: var(--app-font-family);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -48,6 +51,16 @@
   --input: rgba(60, 60, 67, 0.12);
   --ring: rgba(0, 122, 255, 0.3);
   --radius: 0.85rem;
+  --app-font-family:
+    "Huiwen-Fangsong",
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "PingFang SC",
+    "Microsoft YaHei",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
 
   /* 光晕 */
   --glow-primary: rgba(0, 122, 255, 0.15);
@@ -88,18 +101,16 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family:
-    "Huiwen-Fangsong",
-    -apple-system,
-    BlinkMacSystemFont,
-    "SF Pro Text",
-    "PingFang SC",
-    "Microsoft YaHei",
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
+  font-family: var(--app-font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 /* 空间站背景纹理 — 极淡的星点噪点 */

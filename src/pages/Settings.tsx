@@ -3,6 +3,7 @@ import {
   useTheme,
   type AccentColor,
 } from "@/components/layout/theme-context";
+import { useFont } from "@/components/layout/font-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import {
   type CloudSyncProgress,
 } from "@/lib/cloudSync";
 import { db } from "@/lib/db";
+import { FONT_PREVIEW_TEXT, type FontOption } from "@/lib/fontSettings";
 import { cn } from "@/lib/utils";
 import type { CloudSyncConfig } from "@/types";
 import {
@@ -27,7 +29,10 @@ import {
   Loader2,
   Moon,
   PaintBucket,
+  Plus,
   Sun,
+  Trash2,
+  Type,
   Upload,
   X,
 } from "lucide-react";
@@ -60,7 +65,22 @@ function createDefaultConfig(): CloudSyncConfig {
 
 export function Settings() {
   const { theme, toggleTheme, accentColor, setAccentColor } = useTheme();
+  const {
+    fontState,
+    fonts,
+    loadState: fontLoadState,
+    selectFont,
+    addCustomFont,
+    removeCustomFont,
+  } = useFont();
   const [section, setSection] = useState<Section>("appearance");
+  const [customFontLabel, setCustomFontLabel] = useState("");
+  const [customFontFamily, setCustomFontFamily] = useState("");
+  const [customFontUrl, setCustomFontUrl] = useState("");
+
+  const fontLoading =
+    fontLoadState.status === "loading-css" ||
+    fontLoadState.status === "loading-font";
 
   // 云同步状态
   const [config, setConfig] = useState<CloudSyncConfig>(createDefaultConfig());
@@ -108,6 +128,37 @@ export function Settings() {
       db.cloudSync.put(next);
       return next;
     });
+  }
+
+  async function handleSelectFont(font: FontOption) {
+    const result = await selectFont(font);
+    if (!result.ok && result.message !== "字体加载已取消") {
+      toast.error(result.message);
+    }
+  }
+
+  async function handleAddCustomFont() {
+    const result = await addCustomFont({
+      label: customFontLabel,
+      family: customFontFamily,
+      url: customFontUrl,
+    });
+
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
+    }
+
+    setCustomFontLabel("");
+    setCustomFontFamily("");
+    setCustomFontUrl("");
+    toast.success(result.message);
+  }
+
+  function handleRemoveCustomFont(font: FontOption) {
+    if (!confirm(`确认从字体库删除“${font.label}”吗？`)) return;
+    removeCustomFont(font.id);
+    toast.success(`已删除“${font.label}”`);
   }
 
   async function handleVerify() {
@@ -301,6 +352,157 @@ export function Settings() {
                     </button>
                   );
                 })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2 sm:pb-4">
+              <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+                <Type className="h-4 w-4 shrink-0" />
+                全局字体
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div>
+                <p className="text-xs text-muted-foreground mb-3 sm:mb-4">
+                  字体会应用到整个编辑器。汇文仿宋保留为默认选项，自定义字体只有验证成功后才会启用。
+                </p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {fonts.map((font) => {
+                    const isActive =
+                      fontState.currentFontFamily === font.family;
+                    const isLoading =
+                      fontLoading &&
+                      fontLoadState.targetFamily === font.family;
+
+                    return (
+                      <div key={font.id} className="relative min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => void handleSelectFont(font)}
+                          disabled={fontLoading}
+                          aria-pressed={isActive}
+                          className={cn(
+                            "w-full min-h-20 rounded-xl border p-3 text-left transition-all disabled:cursor-wait disabled:opacity-60",
+                            isActive
+                              ? "border-primary bg-primary/8 shadow-sm"
+                              : "border-border bg-background/40 hover:border-primary/40 hover:bg-accent/50",
+                            font.source === "custom" && "pr-10",
+                          )}
+                          style={{ fontFamily: font.family }}
+                        >
+                          <span className="flex items-center gap-1.5 text-sm font-semibold">
+                            {isLoading ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isActive ? (
+                              <Check className="h-3.5 w-3.5 text-primary" />
+                            ) : null}
+                            {font.label}
+                          </span>
+                          <span className="mt-3 block text-base leading-snug">
+                            {FONT_PREVIEW_TEXT}
+                          </span>
+                        </button>
+
+                        {font.source === "custom" && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomFont(font)}
+                            disabled={fontLoading}
+                            className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                            aria-label={`删除字体 ${font.label}`}
+                            title={`删除 ${font.label}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <div className="mb-3">
+                  <p className="text-sm font-medium">添加网络字体</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    需要字体 CSS 地址及其中声明的 font-family。设置只保存在当前浏览器。
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block space-y-1.5 text-xs font-medium">
+                    显示名称
+                    <Input
+                      value={customFontLabel}
+                      onChange={(event) =>
+                        setCustomFontLabel(event.target.value)
+                      }
+                      placeholder="例如：霞鹜文楷"
+                      disabled={fontLoading}
+                    />
+                  </label>
+                  <label className="block space-y-1.5 text-xs font-medium">
+                    CSS 字体族名称
+                    <Input
+                      value={customFontFamily}
+                      onChange={(event) =>
+                        setCustomFontFamily(event.target.value)
+                      }
+                      placeholder="例如：LXGW WenKai"
+                      disabled={fontLoading}
+                    />
+                  </label>
+                  <label className="block space-y-1.5 text-xs font-medium sm:col-span-2">
+                    字体 CSS 地址
+                    <Input
+                      type="url"
+                      value={customFontUrl}
+                      onChange={(event) => setCustomFontUrl(event.target.value)}
+                      placeholder="https://example.com/font/result.css"
+                      disabled={fontLoading}
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div
+                    className={cn(
+                      "min-h-5 text-xs",
+                      fontLoadState.status === "failed"
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                    )}
+                    role={
+                      fontLoadState.status === "failed" ? "alert" : "status"
+                    }
+                    aria-live="polite"
+                  >
+                    {fontLoading && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        {fontLoadState.message}
+                      </span>
+                    )}
+                    {!fontLoading && fontLoadState.message}
+                  </div>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void handleAddCustomFont()}
+                    disabled={fontLoading}
+                    className="shrink-0"
+                  >
+                    {fontLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    验证并添加
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
