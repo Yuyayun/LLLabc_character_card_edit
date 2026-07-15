@@ -37,13 +37,19 @@ const navSections: { id: Section; label: string; icon: React.ElementType }[] = [
 
 export function Editor() {
   const { id } = useParams<{ id: string }>()
+  return <EditorContent key={id ?? "new"} id={id} />
+}
+
+function EditorContent({ id }: { id?: string }) {
   const navigate = useNavigate()
-  const [card, setCard] = useState<CharacterCard | null>(null)
-  const [loading, setLoading] = useState(true)
+  const isNew = id === "new" || !id
+  const [card, setCard] = useState<CharacterCard | null>(() =>
+    isNew ? createDefaultCard() : null
+  )
+  const [loading, setLoading] = useState(!isNew)
   const [section, setSection] = useState<Section>("basic")
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768)
   const dirtyRef = useRef(false)
-  const isNew = id === "new" || !id
 
   function handleChange(changed: CharacterCard) {
     dirtyRef.current = true
@@ -51,15 +57,13 @@ export function Editor() {
   }
 
   useEffect(() => {
-    if (isNew) {
-      setCard(createDefaultCard())
-      dirtyRef.current = false
-      setLoading(false)
-      return
-    }
+    if (isNew) return
+
+    let active = true
     db.characterCards
       .get(id!)
       .then((c) => {
+        if (!active) return
         if (c) {
           setCard(c)
           dirtyRef.current = false
@@ -69,6 +73,10 @@ export function Editor() {
         }
         setLoading(false)
       })
+
+    return () => {
+      active = false
+    }
   }, [id, isNew, navigate])
 
   useEffect(() => {

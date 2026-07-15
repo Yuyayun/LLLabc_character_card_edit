@@ -1,10 +1,8 @@
 import { Link, useLocation } from "react-router-dom"
-import { useTheme } from "./ThemeProvider"
+import { useTheme } from "./theme-context"
 import { Button } from "@/components/ui/button"
 import { Sun, Moon, Settings, MessageSquareText, SlidersHorizontal, Home, BookOpen } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
-import { isPresetUnlocked } from "@/lib/lockKey"
 
 const navItems = [
   { path: "/", label: "首页", icon: Home },
@@ -14,11 +12,6 @@ const navItems = [
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
-  const [showPresets, setShowPresets] = useState(false)
-
-  useEffect(() => {
-    isPresetUnlocked().then(setShowPresets)
-  }, [location.pathname])
 
   const isPresetActive = location.pathname === "/presets" || location.pathname.startsWith("/preset")
 
@@ -53,23 +46,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 )
               })}
-              {showPresets && (
-                <Link to="/presets">
-                  <Button
-                    variant={isPresetActive ? "secondary" : "ghost"}
-                    size="sm"
-                    className={cn(
-                      "h-9 w-9 sm:w-auto sm:px-2.5",
-                      isPresetActive && "font-medium"
-                    )}
-                    title="预设"
-                  >
-                    <SlidersHorizontal className="h-4 w-4 sm:hidden" />
-                    <SlidersHorizontal className="h-3.5 w-3.5 mr-1 hidden sm:inline" />
-                    <span className="hidden sm:inline">预设</span>
-                  </Button>
-                </Link>
-              )}
+              <Link to="/presets">
+                <Button
+                  variant={isPresetActive ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-9 w-9 sm:w-auto sm:px-2.5",
+                    isPresetActive && "font-medium"
+                  )}
+                  title="预设"
+                >
+                  <SlidersHorizontal className="h-4 w-4 sm:hidden" />
+                  <SlidersHorizontal className="h-3.5 w-3.5 mr-1 hidden sm:inline" />
+                  <span className="hidden sm:inline">预设</span>
+                </Button>
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">

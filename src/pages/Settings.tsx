@@ -2,7 +2,7 @@ import {
   accentDefs,
   useTheme,
   type AccentColor,
-} from "@/components/layout/ThemeProvider";
+} from "@/components/layout/theme-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,6 @@ import {
   type CloudSyncProgress,
 } from "@/lib/cloudSync";
 import { db } from "@/lib/db";
-import { clearUnlock, isPresetUnlocked, verifyKey } from "@/lib/lockKey";
 import { cn } from "@/lib/utils";
 import type { CloudSyncConfig } from "@/types";
 import {
@@ -26,11 +25,9 @@ import {
   Cloud,
   Download,
   Loader2,
-  Lock,
   Moon,
   PaintBucket,
   Sun,
-  Unlock,
   Upload,
   X,
 } from "lucide-react";
@@ -39,12 +36,11 @@ import { toast } from "sonner";
 
 const accentKeys = Object.keys(accentDefs) as AccentColor[];
 
-type Section = "appearance" | "api" | "presets" | "cloud" | "changelog";
+type Section = "appearance" | "api" | "cloud" | "changelog";
 
 const sections: { id: Section; label: string }[] = [
   { id: "appearance", label: "界面" },
   { id: "api", label: "API" },
-  { id: "presets", label: "预设" },
   { id: "cloud", label: "云同步" },
   { id: "changelog", label: "日志" },
 ];
@@ -84,11 +80,6 @@ export function Settings() {
     null,
   );
 
-  // 预设解锁状态
-  const [presetUnlocked, setPresetUnlocked] = useState<boolean | null>(null);
-  const [keyInput, setKeyInput] = useState("");
-  const [keyChecking, setKeyChecking] = useState(false);
-
   const SYNC_ID = "cloud_sync" as const;
 
   // 加载云同步配置
@@ -110,11 +101,6 @@ export function Settings() {
       checkConnection().then(setConnected);
     }
   }, [section, config.enabled, config.gistId, config.githubToken]);
-
-  // 检查预设解锁状态
-  useEffect(() => {
-    isPresetUnlocked().then(setPresetUnlocked);
-  }, [section]);
 
   function updateConfig(patch: Partial<CloudSyncConfig>) {
     setConfig((prev) => {
@@ -331,124 +317,6 @@ export function Settings() {
             <p className="text-xs sm:text-sm text-muted-foreground">
               AI 对话功能将在后续版本中提供。此处将配置 AI 接口连接信息。
             </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 预设管理 */}
-      {section === "presets" && (
-        <Card>
-          <CardHeader className="pb-2 sm:pb-4">
-            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-              预设编辑器
-              {presetUnlocked === null ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-              ) : presetUnlocked ? (
-                <span className="text-xs text-emerald-500 flex items-center gap-1">
-                  <Check className="h-3 w-3" />
-                  已解锁
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Lock className="h-3 w-3" />
-                  已锁定
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {presetUnlocked === null ? (
-              <p className="text-xs text-muted-foreground">正在检查状态...</p>
-            ) : presetUnlocked ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-md">
-                  <Unlock className="h-4 w-4 text-emerald-500 shrink-0" />
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                      预设编辑器已解锁
-                    </p>
-                    <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/70">
-                      所有预设功能已可用：列表、编辑、导入导出
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-[11px] text-muted-foreground"
-                  onClick={async () => {
-                    await clearUnlock();
-                    setPresetUnlocked(false);
-                    toast.success("已锁定预设编辑器");
-                  }}
-                >
-                  清除解锁状态
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-md">
-                  <Lock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium">
-                      预设编辑器已锁定
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      输入封锁 Key 以解锁预设编辑功能。如需获取
-                      Key，请联系开发者。
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    type="password"
-                    placeholder="输入封锁 Key..."
-                    value={keyInput}
-                    onChange={(e) => setKeyInput(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter") {
-                        setKeyChecking(true);
-                        const ok = await verifyKey(keyInput);
-                        if (ok) {
-                          setPresetUnlocked(true);
-                          toast.success("预设编辑器已解锁！");
-                        } else {
-                          toast.error("Key 不正确");
-                        }
-                        setKeyInput("");
-                        setKeyChecking(false);
-                      }
-                    }}
-                    className="h-9 min-w-0 text-xs flex-1 sm:h-8"
-                    disabled={keyChecking}
-                  />
-                  <Button
-                    size="sm"
-                    className="h-9 w-full text-xs shrink-0 sm:h-8 sm:w-auto"
-                    disabled={keyChecking || !keyInput.trim()}
-                    onClick={async () => {
-                      setKeyChecking(true);
-                      const ok = await verifyKey(keyInput);
-                      if (ok) {
-                        setPresetUnlocked(true);
-                        toast.success("预设编辑器已解锁！");
-                      } else {
-                        toast.error("Key 不正确");
-                      }
-                      setKeyInput("");
-                      setKeyChecking(false);
-                    }}
-                  >
-                    {keyChecking ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                    ) : (
-                      <Unlock className="h-3.5 w-3.5 mr-1" />
-                    )}
-                    解锁
-                  </Button>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}

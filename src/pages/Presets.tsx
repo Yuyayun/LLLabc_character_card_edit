@@ -10,6 +10,10 @@ import { toast } from "sonner"
 import { createDefaultPreset } from "@/lib/helpers"
 import { parsePresetJSON } from "@/lib/parser"
 
+function queryPresets() {
+  return db.presets.orderBy("updated_at").reverse().toArray()
+}
+
 export function Presets() {
   const navigate = useNavigate()
   const [presets, setPresets] = useState<Preset[]>([])
@@ -18,17 +22,29 @@ export function Presets() {
 
   function loadPresets() {
     setLoading(true)
-    db.presets
-      .orderBy("updated_at")
-      .reverse()
-      .toArray()
+    queryPresets()
       .then(setPresets)
       .catch(() => toast.error("加载预设列表失败"))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
-    loadPresets()
+    let active = true
+
+    queryPresets()
+      .then((data) => {
+        if (active) setPresets(data)
+      })
+      .catch(() => {
+        if (active) toast.error("加载预设列表失败")
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   async function handleCreate() {

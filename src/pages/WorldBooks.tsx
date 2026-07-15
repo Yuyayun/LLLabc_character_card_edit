@@ -20,6 +20,39 @@ interface BookListItem {
   cardId?: string
 }
 
+async function queryAllBooks(): Promise<BookListItem[]> {
+  const [dbBooksRaw, cards] = await Promise.all([
+    db.worldBooks.toArray(),
+    db.characterCards.toArray(),
+  ])
+
+  const dbBooks = dbBooksRaw.sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  )
+
+  const list: BookListItem[] = dbBooks.map((book) => ({
+    id: book.id,
+    name: book.name || "未命名世界书",
+    entryCount: book.entries?.length ?? 0,
+    source: "standalone" as const,
+  }))
+
+  for (const card of cards) {
+    if (card.character_book) {
+      list.push({
+        id: card.character_book.id,
+        name: card.character_book.name || card.name + " 的世界书",
+        entryCount: card.character_book.entries?.length ?? 0,
+        source: "embedded" as const,
+        cardName: card.name,
+        cardId: card.id,
+      })
+    }
+  }
+
+  return list
+}
+
 export function WorldBooks() {
   const [books, setBooks] = useState<BookListItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -29,38 +62,10 @@ export function WorldBooks() {
 
   const loadAllBooks = useCallback(async () => {
     const version = ++loadVersionRef.current
-    const [dbBooksRaw, cards] = await Promise.all([
-      db.worldBooks.toArray(),
-      db.characterCards.toArray(),
-    ])
-
-    const dbBooks = dbBooksRaw.sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    )
+    const list = await queryAllBooks()
 
     // 竞态保护
     if (version !== loadVersionRef.current) return
-
-    const list: BookListItem[] = dbBooks.map((b) => ({
-      id: b.id,
-      name: b.name || "未命名世界书",
-      entryCount: b.entries?.length ?? 0,
-      source: "standalone" as const,
-    }))
-
-    // 加入角色卡内嵌的世界书
-    for (const c of cards) {
-      if (c.character_book) {
-        list.push({
-          id: c.character_book.id,
-          name: c.character_book.name || c.name + " 的世界书",
-          entryCount: c.character_book.entries?.length ?? 0,
-          source: "embedded" as const,
-          cardName: c.name,
-          cardId: c.id,
-        })
-      }
-    }
 
     setBooks(list)
 
@@ -72,8 +77,21 @@ export function WorldBooks() {
   }, [selectedId])
 
   useEffect(() => {
-    loadAllBooks()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    const version = ++loadVersionRef.current
+    let active = true
+
+    queryAllBooks()
+      .then((list) => {
+        if (active && version === loadVersionRef.current) setBooks(list)
+      })
+      .catch(() => {
+        if (active) toast.error("加载世界书失败")
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   async function selectBook(item: BookListItem) {
     setSelectedId(item.id)
@@ -204,7 +222,11 @@ export function WorldBooks() {
   function toggleExpanded(id: number) {
     setExpanded((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }

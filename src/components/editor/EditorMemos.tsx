@@ -16,6 +16,10 @@ type ViewMode = "cards" | "timeline"
 
 const SESSION_TIMEOUT = 60_000 // 1 分钟无输入视为编辑会话结束
 
+function getCurrentTimestamp(): number {
+  return Date.now()
+}
+
 function formatDate(d: Date | number): string {
   const date = d instanceof Date ? d : new Date(d)
   const today = new Date()
@@ -44,6 +48,7 @@ export function EditorMemos({ card, onChange }: Props) {
   const [memos, setMemos] = useState<Memo[]>([])
   const [view, setView] = useState<ViewMode>("cards")
   const [loading, setLoading] = useState(true)
+  const memosRef = useRef<Memo[]>([])
   const saveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const sessionStarts = useRef<Map<string, number>>(new Map())
   const sessionTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
@@ -65,10 +70,15 @@ export function EditorMemos({ card, onChange }: Props) {
     loadMemos()
   }, [loadMemos])
 
-  // 组件卸载时清理所有 session 定时器
   useEffect(() => {
+    memosRef.current = memos
+  }, [memos])
+
+  // 组件卸载时清理所有会话定时器
+  useEffect(() => {
+    const activeSessionTimers = sessionTimers.current
     return () => {
-      sessionTimers.current.forEach((t) => clearTimeout(t))
+      activeSessionTimers.forEach((timer) => clearTimeout(timer))
     }
   }, [])
 
@@ -79,12 +89,11 @@ export function EditorMemos({ card, onChange }: Props) {
     }
   }, [memos.length])
 
-  function finishSession(memo: Memo, startTime: number) {
-    const endTime = Date.now()
+  function finishSession(memo: Memo, startTime: number, endTime: number) {
     const session = { start: startTime, end: endTime }
     const updated: Memo = {
       ...memo,
-      updated_at: new Date(),
+      updated_at: new Date(endTime),
       edit_sessions: [...(memo.edit_sessions ?? []), session],
     }
     db.memos.put(updated).then(() => onChange())
@@ -115,7 +124,7 @@ export function EditorMemos({ card, onChange }: Props) {
   }
 
   function updateContent(id: string, content: string) {
-    const now = Date.now()
+    const now = getCurrentTimestamp()
     const memo = memos.find((m) => m.id === id)
     if (!memo) return
 
@@ -147,11 +156,8 @@ export function EditorMemos({ card, onChange }: Props) {
       const startTime = sessionStarts.current.get(id)
       if (startTime == null) return
       // 取当前最新 memo 数据用于 finishSession
-      setMemos((prev) => {
-        const latest = prev.find((m) => m.id === id)
-        if (latest && startTime != null) finishSession(latest, startTime)
-        return prev
-      })
+      const latest = memosRef.current.find((m) => m.id === id)
+      if (latest) finishSession(latest, startTime, getCurrentTimestamp())
     }, SESSION_TIMEOUT)
     sessionTimers.current.set(id, sessionTimer)
   }

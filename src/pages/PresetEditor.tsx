@@ -32,11 +32,17 @@ import {
 
 export function PresetEditor() {
   const { id } = useParams<{ id: string }>()
+  return <PresetEditorContent key={id ?? "new"} id={id} />
+}
+
+function PresetEditorContent({ id }: { id?: string }) {
   const navigate = useNavigate()
   const isNew = id === "new" || !id
 
-  const [preset, setPreset] = useState<Preset | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [preset, setPreset] = useState<Preset | null>(() =>
+    isNew ? createDefaultPreset() : null
+  )
+  const [loading, setLoading] = useState(!isNew)
 
   // 侧边栏
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768)
@@ -77,15 +83,13 @@ export function PresetEditor() {
   }
 
   useEffect(() => {
-    if (isNew) {
-      setPreset(createDefaultPreset())
-      setOrder([])
-      setLoading(false)
-      return
-    }
+    if (isNew) return
+
+    let active = true
     db.presets
       .get(id!)
       .then((p) => {
+        if (!active) return
         if (p) {
           setPreset(p)
           setOrder(buildOrder(p))
@@ -95,6 +99,10 @@ export function PresetEditor() {
         }
         setLoading(false)
       })
+
+    return () => {
+      active = false
+    }
   }, [id, isNew, navigate])
 
   function handleChange(changed: Preset) {

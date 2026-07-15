@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import type { PresetPrompt } from "@/types"
 import {
   Dialog,
@@ -31,28 +31,33 @@ const POSITIONS = [
 ]
 const DEPTHS = [0, 1, 2, 3, 4] as const
 
-export function PresetPromptEditor({ open, onOpenChange, prompt, onSave }: Props) {
-  const [name, setName] = useState("")
-  const [content, setContent] = useState("")
-  const [role, setRole] = useState<"system" | "user" | "assistant">("system")
-  const [injectionPosition, setInjectionPosition] = useState(0)
-  const [injectionDepth, setInjectionDepth] = useState(4)
-  const [systemPrompt, setSystemPrompt] = useState(false)
-  const [marker, setMarker] = useState(false)
-  const [forbidOverrides, setForbidOverrides] = useState(false)
+export function PresetPromptEditor(props: Props) {
+  const editorKey = props.open
+    ? (props.prompt?.identifier ?? "new")
+    : "closed"
 
-  useEffect(() => {
-    if (open) {
-      setName(prompt?.name ?? "")
-      setContent(prompt?.content ?? "")
-      setRole(prompt?.role ?? "system")
-      setInjectionPosition(prompt?.injection_position ?? 0)
-      setInjectionDepth(prompt?.injection_depth ?? 4)
-      setSystemPrompt(prompt?.system_prompt ?? false)
-      setMarker(prompt?.marker ?? false)
-      setForbidOverrides(prompt?.forbid_overrides ?? false)
-    }
-  }, [open, prompt])
+  return <PresetPromptEditorForm key={editorKey} {...props} />
+}
+
+function PresetPromptEditorForm({ open, onOpenChange, prompt, onSave }: Props) {
+  const [name, setName] = useState(() => prompt?.name ?? "")
+  const [content, setContent] = useState(() => prompt?.content ?? "")
+  const [role, setRole] = useState<"system" | "user" | "assistant">(
+    () => prompt?.role ?? "system"
+  )
+  const [injectionPosition, setInjectionPosition] = useState(
+    () => prompt?.injection_position ?? 0
+  )
+  const [injectionDepth, setInjectionDepth] = useState(
+    () => prompt?.injection_depth ?? 4
+  )
+  const [systemPrompt, setSystemPrompt] = useState(
+    () => prompt?.system_prompt ?? false
+  )
+  const marker = prompt?.marker ?? false
+  const [forbidOverrides, setForbidOverrides] = useState(
+    () => prompt?.forbid_overrides ?? false
+  )
 
   function handleSave() {
     if (!name.trim()) return
@@ -166,15 +171,6 @@ export function PresetPromptEditor({ open, onOpenChange, prompt, onSave }: Props
             <div className="flex items-center justify-between">
               <Label className="text-xs">系统提示词</Label>
               <Switch checked={systemPrompt} onCheckedChange={setSystemPrompt} />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-xs">标记点</Label>
-                <p className="text-[10px] text-muted-foreground">
-                  用于注入角色卡字段（如 {'{{charDescription}}'}）
-                </p>
-              </div>
-              <Switch checked={marker} onCheckedChange={setMarker} />
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-xs">禁止覆盖</Label>
