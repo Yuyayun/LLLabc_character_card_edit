@@ -797,6 +797,25 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.4
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-07-16
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>新增全局字体切换，内置汇文仿宋、澹雅明体、寒蝉全圆体及两种系统字体</li>
+                <li>支持添加经过加载验证的网络字体，字体选择会在刷新后保留</li>
+                <li>网络字体加载失败时继续使用当前字体，不会写入失败的设置</li>
+                <li>预设功能现已直接开放，无需再在设置页解锁</li>
+                <li>预设占位属性改为跟随文件原始信息，已有占位条目不受影响，不再提供手动切换</li>
+                <li>完成代码质量清理与手机端适配，现有角色卡、世界书和预设数据格式保持不变</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.1.3
                 </span>
                 <span className="text-xs text-muted-foreground">
@@ -1123,8 +1142,8 @@ export function Settings() {
 
             <div className="border-t pt-4">
               <p className="text-xs text-muted-foreground">
-                <strong>下个版本计划（可能，随时砍）：</strong>API 配置管理、
-                AI 对话聊天界面、角色卡写作辅助与测试功能。
+                <strong>后续规划：</strong>API 配置管理、AI 对话、
+                角色卡写作辅助与测试功能；具体范围以实际发布为准。
               </p>
             </div>
           </CardContent>
