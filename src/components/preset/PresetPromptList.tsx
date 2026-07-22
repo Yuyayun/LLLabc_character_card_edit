@@ -3,6 +3,8 @@ import type { PresetPrompt, PresetPromptOrder } from "@/types"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { GripVertical, Pencil, Unlink, ChevronUp, ChevronDown } from "lucide-react"
+import { TokenEstimate } from "@/components/token/TokenEstimate"
+import { isPresetMarkerPrompt } from "@/lib/presetMarkers"
 
 interface Props {
   order: PresetPromptOrder[]
@@ -19,28 +21,10 @@ interface Props {
 const AUTO_SCROLL_ZONE = 60 // 距离边缘多少 px 开始自动滚动
 const AUTO_SCROLL_SPEED = 8 // 每次滚动像素数
 
-const MARKER_IDENTIFIERS = new Set([
-  "main",
-  "worldInfoBefore",
-  "worldInfoAfter",
-  "charDescription",
-  "charPersonality",
-  "scenario",
-  "dialogueExamples",
-  "chatHistory",
-  "personaDescription",
-])
-
 const roleLabels: Record<string, string> = {
   system: "系统",
   user: "用户",
   assistant: "AI",
-}
-
-function promptKind(prompt: PresetPrompt): string {
-  if (prompt.marker || MARKER_IDENTIFIERS.has(prompt.identifier)) return "占位节点"
-  if (!prompt.content) return "空内容"
-  return "提示词"
 }
 
 function positionLabel(prompt: PresetPrompt): string {
@@ -50,7 +34,6 @@ function positionLabel(prompt: PresetPrompt): string {
 
 function promptMeta(prompt: PresetPrompt): string[] {
   return [
-    promptKind(prompt),
     roleLabels[prompt.role] ?? "未指定角色",
     positionLabel(prompt),
     `${prompt.content?.length ?? 0} 字符`,
@@ -223,6 +206,9 @@ export function PresetPromptList({
               </span>
               <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
                 {promptMeta(prompt).join(" · ")}
+                {!isPresetMarkerPrompt(prompt) && (
+                  <TokenEstimate text={prompt.content} prefix=" · " />
+                )}
               </span>
             </div>
 

@@ -1,6 +1,7 @@
 import type { CharacterCard, WorldBook } from "@/types"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { WorldBookNameField } from "./WorldBookNameField"
+import { TokenEstimateTotal } from "@/components/token/TokenEstimate"
 import {
   Select,
   SelectContent,
@@ -155,9 +156,9 @@ export function EditorWorldBook({ card, onChange }: Props) {
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         {boundBook ? (
           <>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex max-w-full items-start gap-2 text-sm">
               <Link className="h-4 w-4 text-muted-foreground" />
-              <span>
+              <span className="min-w-0 break-words">
                 已绑定独立世界书：
                 <span className="font-medium">{boundBook.name}</span>
                 <span className="text-muted-foreground ml-1">({boundBook.entries.length} 条)</span>
@@ -201,17 +202,25 @@ export function EditorWorldBook({ card, onChange }: Props) {
     <div className="space-y-4">
       {/* 世界书名称标题 */}
       <div className="space-y-1.5 pb-3 border-b">
-        <Input
-          value={worldBook.name}
-          onChange={(e) => updateWorldBook({ name: e.target.value })}
-          placeholder="世界书名称"
-          className="text-base font-semibold border-none px-0 h-auto max-w-sm"
-        />
-        <span className="text-xs text-muted-foreground">{worldBook.entries.length} 条条目</span>
+        <div className="flex min-w-0 items-start gap-3">
+          <WorldBookNameField
+            value={worldBook.name}
+            onChange={(e) => updateWorldBook({ name: e.target.value })}
+            placeholder="世界书名称"
+            className="min-w-0 flex-1 text-base font-semibold"
+          />
+          <span className="ml-auto shrink-0 pt-0.5 text-right text-xs text-muted-foreground">
+            {worldBook.entries.length} 条
+            <TokenEstimateTotal
+              texts={worldBook.entries.map((entry) => entry.content)}
+              prefix=" · 全部条目 "
+            />
+          </span>
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={addEntry}>
             <Plus className="h-4 w-4 mr-1" />
             添加条目

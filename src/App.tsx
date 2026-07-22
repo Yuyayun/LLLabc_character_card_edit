@@ -1,6 +1,7 @@
 import { createHashRouter, Outlet, RouterProvider } from "react-router-dom"
 import { ThemeProvider } from "@/components/layout/ThemeProvider"
 import { FontProvider } from "@/components/layout/FontProvider"
+import { TokenCountProvider } from "@/components/layout/TokenCountProvider"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary"
 import { Dashboard } from "@/pages/Dashboard"
@@ -16,11 +17,13 @@ function AppShell() {
   return (
     <ThemeProvider>
       <FontProvider>
-        <ErrorBoundary>
-          <AppLayout>
-            <Outlet />
-          </AppLayout>
-        </ErrorBoundary>
+        <TokenCountProvider>
+          <ErrorBoundary>
+            <AppLayout>
+              <Outlet />
+            </AppLayout>
+          </ErrorBoundary>
+        </TokenCountProvider>
       </FontProvider>
     </ThemeProvider>
   )

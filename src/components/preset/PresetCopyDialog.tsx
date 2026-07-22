@@ -14,18 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Copy } from "lucide-react"
 import { getEditablePresetOrder } from "@/lib/presetOrder"
-
-const MARKER_IDENTIFIERS = new Set([
-  "main",
-  "worldInfoBefore",
-  "worldInfoAfter",
-  "charDescription",
-  "charPersonality",
-  "scenario",
-  "dialogueExamples",
-  "chatHistory",
-  "personaDescription",
-])
+import { isPresetMarkerPrompt } from "@/lib/presetMarkers"
 
 interface CopyPayload {
   prompts: PresetPrompt[]
@@ -44,12 +33,8 @@ interface Props {
   onCopy: (payload: CopyPayload) => void
 }
 
-function isMarkerPrompt(prompt: PresetPrompt): boolean {
-  return prompt.marker || MARKER_IDENTIFIERS.has(prompt.identifier)
-}
-
 function promptKind(prompt: PresetPrompt): string {
-  if (isMarkerPrompt(prompt)) return "占位节点"
+  if (isPresetMarkerPrompt(prompt)) return "占位节点"
   if (!prompt.content) return "空内容"
   return "提示词"
 }
@@ -153,7 +138,7 @@ export function PresetCopyDialog({
   }
 
   function togglePrompt(prompt: PresetPrompt, checked: boolean) {
-    if (isMarkerPrompt(prompt)) return
+    if (isPresetMarkerPrompt(prompt)) return
     setSelectedPromptIds((prev) => {
       const next = new Set(prev)
       if (checked) next.add(prompt.identifier)
@@ -176,7 +161,7 @@ export function PresetCopyDialog({
 
     const usedPromptNames = new Set(targetPrompts.map((prompt) => promptName(prompt)))
     const copiedPrompts = sourcePrompts
-      .filter((prompt) => selectedPromptIds.has(prompt.identifier) && !isMarkerPrompt(prompt))
+      .filter((prompt) => selectedPromptIds.has(prompt.identifier) && !isPresetMarkerPrompt(prompt))
       .map((prompt) => ({
         ...structuredClone(prompt),
         identifier: generateId(),
@@ -284,7 +269,7 @@ export function PresetCopyDialog({
                   </p>
                 ) : (
                   sourcePrompts.map((prompt) => {
-                    const disabled = isMarkerPrompt(prompt)
+                    const disabled = isPresetMarkerPrompt(prompt)
                     return (
                       <label
                         key={prompt.identifier}

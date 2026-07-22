@@ -1,6 +1,7 @@
 import type { CharacterCard } from "@/types"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { TokenEstimate } from "@/components/token/TokenEstimate"
 
 interface Props {
   card: CharacterCard
@@ -16,10 +17,11 @@ export function EditorDefinition({ card, onChange }: Props) {
     <div className="space-y-8">
       {/* 角色描述 - 核心内容，大空间 */}
       <section>
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <Label htmlFor="def-description" className="text-sm font-semibold">角色描述 (Description)</Label>
           <span className="text-[11px] text-muted-foreground">
             {card.description.length.toLocaleString()} 字
+            <TokenEstimate text={card.description} prefix=" · " />
           </span>
         </div>
         <Textarea
@@ -32,7 +34,10 @@ export function EditorDefinition({ card, onChange }: Props) {
 
       {/* 性格 */}
       <section>
-        <Label htmlFor="def-personality" className="text-sm font-semibold mb-2 block">性格 (Personality)</Label>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <Label htmlFor="def-personality" className="text-sm font-semibold">性格 (Personality)</Label>
+          <TokenEstimate text={card.personality} className="text-[11px]" />
+        </div>
         <Textarea
           id="def-personality"
           value={card.personality}
@@ -43,7 +48,10 @@ export function EditorDefinition({ card, onChange }: Props) {
 
       {/* 场景 */}
       <section>
-        <Label htmlFor="def-scenario" className="text-sm font-semibold mb-2 block">场景 (Scenario)</Label>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <Label htmlFor="def-scenario" className="text-sm font-semibold">场景 (Scenario)</Label>
+          <TokenEstimate text={card.scenario} className="text-[11px]" />
+        </div>
         <Textarea
           id="def-scenario"
           value={card.scenario}
@@ -54,10 +62,11 @@ export function EditorDefinition({ card, onChange }: Props) {
 
       {/* 第一条消息 */}
       <section>
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <Label htmlFor="def-first-mes" className="text-sm font-semibold">第一条消息 (First Message)</Label>
           <span className="text-[11px] text-muted-foreground">
             {card.first_mes.length.toLocaleString()} 字
+            <TokenEstimate text={card.first_mes} prefix=" · " />
           </span>
         </div>
         <Textarea
@@ -70,10 +79,11 @@ export function EditorDefinition({ card, onChange }: Props) {
 
       {/* 对话示例 */}
       <section>
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <Label htmlFor="def-mes-example" className="text-sm font-semibold">对话示例 (Message Example)</Label>
           <span className="text-[11px] text-muted-foreground">
             {card.mes_example.length.toLocaleString()} 字
+            <TokenEstimate text={card.mes_example} prefix=" · " />
           </span>
         </div>
         <Textarea

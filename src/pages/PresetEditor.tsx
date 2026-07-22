@@ -37,6 +37,54 @@ import {
   createEditorSnapshot,
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges"
+import { useTokenCounts } from "@/hooks/useTokenCount"
+import { isPresetMarkerPrompt } from "@/lib/presetMarkers"
+
+function tokenSummaryText(
+  status: ReturnType<typeof useTokenCounts>["status"],
+  total: number | null
+) {
+  if (status === "loading" || (status === "ready" && total == null)) {
+    return "估算中…"
+  }
+  if (status === "unavailable") return "暂不可用"
+  if (status === "ready" && total != null) {
+    return `${total.toLocaleString()} tokens`
+  }
+  return ""
+}
+
+function PresetTokenSummary({
+  prompts,
+  order,
+}: {
+  prompts: PresetPrompt[]
+  order: PresetPromptOrder[]
+}) {
+  const promptMap = new Map(prompts.map((prompt) => [prompt.identifier, prompt]))
+  const enabledTexts = order
+    .filter((item) => item.enabled)
+    .map((item) => promptMap.get(item.identifier))
+    .filter((prompt): prompt is PresetPrompt =>
+      prompt != null && !isPresetMarkerPrompt(prompt)
+    )
+    .map((prompt) => prompt.content)
+  const enabled = useTokenCounts(enabledTexts)
+  const pool = useTokenCounts(
+    prompts
+      .filter((prompt) => !isPresetMarkerPrompt(prompt))
+      .map((prompt) => prompt.content)
+  )
+
+  if (!enabled.visible || enabled.status === "selection-required") return null
+
+  return (
+    <p className="text-[10px] text-muted-foreground sm:text-xs">
+      当前启用 {tokenSummaryText(enabled.status, enabled.total)} · 全部池{" "}
+      {tokenSummaryText(pool.status, pool.total)}
+    </p>
+  )
+}
 
 export function PresetEditor() {
   const { id } = useParams<{ id: string }>()
@@ -583,8 +631,9 @@ function PresetEditorContent({ id }: { id?: string }) {
             {/* 提示词管理 */}
             <div id="section-prompts" className="space-y-3">
               {/* 标签切换 */}
-              <div className="flex items-center bg-muted/50 rounded-md p-0.5 w-fit">
-                <button
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center bg-muted/50 rounded-md p-0.5 w-fit">
+                  <button
                   onClick={() => setPromptTab("linked")}
                   className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
                     promptTab === "linked"
@@ -593,8 +642,8 @@ function PresetEditorContent({ id }: { id?: string }) {
                   }`}
                 >
                   已链接 ({order.length})
-                </button>
-                <button
+                  </button>
+                  <button
                   onClick={() => setPromptTab("pool")}
                   className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
                     promptTab === "pool"
@@ -603,7 +652,9 @@ function PresetEditorContent({ id }: { id?: string }) {
                   }`}
                 >
                   全部池 ({preset.prompts.length})
-                </button>
+                  </button>
+                </div>
+                <PresetTokenSummary prompts={preset.prompts} order={order} />
               </div>
 
               {/* 搜索 */}

@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { TokenEstimate } from "@/components/token/TokenEstimate"
 
 interface Props {
   card: CharacterCard
@@ -65,7 +66,10 @@ export function EditorDepth({ card, onChange }: Props) {
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="depth-prompt" className="text-xs">提示内容</Label>
+          <Label htmlFor="depth-prompt" className="flex flex-wrap items-center gap-x-1 text-xs">
+            提示内容
+            <TokenEstimate text={card.depth_prompt.prompt} prefix=" · " className="text-[10px]" />
+          </Label>
           <Textarea
             id="depth-prompt"
             value={card.depth_prompt.prompt}
@@ -82,7 +86,10 @@ export function EditorDepth({ card, onChange }: Props) {
 
       {/* 系统提示词 */}
       <section>
-        <h3 className="text-sm font-semibold mb-3 pb-1.5 border-b">系统提示词</h3>
+        <h3 className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-1.5 text-sm font-semibold">
+          系统提示词
+          <TokenEstimate text={card.system_prompt} className="text-[10px] font-normal" />
+        </h3>
         <Textarea
           id="sys-prompt"
           value={card.system_prompt}
@@ -93,7 +100,10 @@ export function EditorDepth({ card, onChange }: Props) {
 
       {/* Post-History 指令 */}
       <section>
-        <h3 className="text-sm font-semibold mb-3 pb-1.5 border-b">Post-History 指令</h3>
+        <h3 className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-1.5 text-sm font-semibold">
+          Post-History 指令
+          <TokenEstimate text={card.post_history_instructions} className="text-[10px] font-normal" />
+        </h3>
         <Textarea
           id="post-history"
           value={card.post_history_instructions}

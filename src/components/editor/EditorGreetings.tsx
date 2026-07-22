@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react"
+import { TokenEstimate } from "@/components/token/TokenEstimate"
 
 interface Props {
   card: CharacterCard
@@ -51,8 +52,11 @@ function GreetingList({
             const itemId = `${idPrefix}-${index}`
             return (
             <section key={index} className="border-l-2 border-muted pl-4">
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor={itemId} className="text-sm font-semibold">{label} #{index + 1}</Label>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor={itemId} className="flex flex-wrap items-center gap-x-1 text-sm font-semibold">
+                  {label} #{index + 1}
+                  <TokenEstimate text={item} prefix=" · " className="text-[10px] font-normal" />
+                </Label>
                 <div className="flex items-center gap-0.5">
                   <Button
                     variant="ghost"

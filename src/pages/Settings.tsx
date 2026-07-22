@@ -4,6 +4,7 @@ import {
   type AccentColor,
 } from "@/components/layout/theme-context";
 import { useFont } from "@/components/layout/font-context";
+import { useTokenCountContext } from "@/components/layout/token-count-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,12 @@ import {
 } from "@/lib/cloudSync";
 import { db } from "@/lib/db";
 import { FONT_PREVIEW_TEXT, type FontOption } from "@/lib/fontSettings";
+import { TOKENIZER_DEFINITIONS } from "@/lib/tokenSettings";
 import { cn } from "@/lib/utils";
 import type { CloudSyncConfig } from "@/types";
 import {
   Check,
+  Binary,
   Cloud,
   Download,
   Loader2,
@@ -73,6 +76,13 @@ export function Settings() {
     addCustomFont,
     removeCustomFont,
   } = useFont();
+  const {
+    settings: tokenSettings,
+    status: tokenizerStatus,
+    errorMessage: tokenizerError,
+    setEnabled: setTokenEstimationEnabled,
+    setTokenizer,
+  } = useTokenCountContext();
   const [section, setSection] = useState<Section>("appearance");
   const [customFontLabel, setCustomFontLabel] = useState("");
   const [customFontFamily, setCustomFontFamily] = useState("");
@@ -353,6 +363,97 @@ export function Settings() {
                   );
                 })}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="flex items-center justify-between gap-3 text-sm sm:text-base">
+                <span className="flex items-center gap-2">
+                  <Binary className="h-4 w-4 shrink-0" />
+                  Token 预估
+                </span>
+                <span className="rounded-full bg-amber-500/12 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                  仅为预估
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">显示 Token 预估</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    关闭时不会加载分词器运行库或模型资源。
+                  </p>
+                </div>
+                <Switch
+                  checked={tokenSettings.enabled}
+                  onCheckedChange={setTokenEstimationEnabled}
+                  aria-label="显示 Token 预估"
+                  className="shrink-0"
+                />
+              </div>
+
+              {tokenSettings.enabled && (
+                <div className="space-y-3 border-t border-border pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-medium">估算方式</p>
+                    {!tokenSettings.tokenizer && (
+                      <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                        请选择分词器
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {TOKENIZER_DEFINITIONS.map((definition) => {
+                      const isActive = tokenSettings.tokenizer === definition.id;
+                      return (
+                        <button
+                          key={definition.id}
+                          type="button"
+                          onClick={() => setTokenizer(definition.id)}
+                          aria-pressed={isActive}
+                          className={cn(
+                            "rounded-lg border p-3 text-left transition-colors",
+                            isActive
+                              ? "border-primary bg-primary/8"
+                              : "border-border bg-background/40 hover:border-primary/40 hover:bg-accent/50",
+                          )}
+                        >
+                          <span className="block text-xs font-medium leading-snug">
+                            {definition.label}
+                          </span>
+                          <span className="mt-1.5 block text-[10px] leading-relaxed text-muted-foreground">
+                            {definition.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {tokenSettings.tokenizer === "claude" && (
+                    <p className="rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+                      Claude 3 及更新模型没有公开的精确分词器，此项只能作粗略参考。
+                    </p>
+                  )}
+
+                  {tokenizerStatus === "loading" && (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      正在本地加载分词器…
+                    </p>
+                  )}
+                  {tokenizerStatus === "unavailable" && (
+                    <p className="text-xs text-destructive">
+                      {tokenizerError ?? "分词器暂时不可用，请稍后重试。"}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <p className="rounded-lg bg-muted/55 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                所有数字都仅为本地预估：按当前字面文本计算，不展开宏，不包含聊天记录或酒馆最终消息格式，不能用于精确费用与上下文判断。文本不会上传到远程服务。
+              </p>
             </CardContent>
           </Card>
 
@@ -794,6 +895,24 @@ export function Settings() {
             <CardTitle className="text-sm sm:text-base">更新日志</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.6
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-07-23
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>新增默认关闭的本地 Token 预估，可选择 Gemini（Gemma 近似）、Claude（粗略估算）或 DeepSeek V4</li>
+                <li>角色卡主要文本、各条开场白与深度提示现在可以分别显示 Token 预估</li>
+                <li>世界书支持条目与全部内容统计；预设支持单条以及“当前启用 / 全部池”统计，占位条目自动排除</li>
+                <li>分词器仅在开启后按需加载并在本地运行，编辑内容不会上传；所有数字都只能作为预估参考</li>
+                <li>世界书长名称改为完整换行显示，条目数保持在信息行最右侧</li>
+              </ul>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">

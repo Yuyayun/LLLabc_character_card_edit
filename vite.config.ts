@@ -24,7 +24,25 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Token 统计默认关闭；运行库只在首次启用后进入运行时缓存。
+        globIgnores: ['**/tokenizer.worker-*.js'],
         runtimeCaching: [
+          {
+            urlPattern: /\/assets\/tokenizer\.worker-[^/]+\.js$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'tokenizer-runtime-v1',
+              expiration: { maxEntries: 2, maxAgeSeconds: 365 * 24 * 60 * 60 },
+            },
+          },
+          {
+            urlPattern: /\/tokenizers\/[^/]+\.(json|model)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'tokenizer-assets-v1',
+              expiration: { maxEntries: 3, maxAgeSeconds: 365 * 24 * 60 * 60 },
+            },
+          },
           {
             urlPattern: /^https?:\/\/.*\.(png|jpg|jpeg|webp|gif)$/,
             handler: 'CacheFirst',

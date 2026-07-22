@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom"
 import { db } from "@/lib/db"
 import type { WorldBook, WorldBookEntry } from "@/types"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { WorldBookNameField } from "@/components/editor/WorldBookNameField"
+import { TokenEstimateTotal } from "@/components/token/TokenEstimate"
 import { ArrowLeft, Save, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { createDefaultWorldBookEntry } from "@/lib/helpers"
@@ -108,19 +109,26 @@ export function WorldBookEditor() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/worldbooks")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Input
+          <WorldBookNameField
             value={book.name}
             onChange={(e) => setBook({ ...book, name: e.target.value })}
-            className="text-xl font-bold max-w-xs border-none px-0"
+            placeholder="世界书名称"
+            className="min-w-0 flex-1 text-xl font-bold"
           />
-          <span className="text-xs text-muted-foreground">{book.entries.length} 条条目</span>
+          <span className="ml-auto shrink-0 pt-1 text-right text-xs text-muted-foreground">
+            {book.entries.length} 条
+            <TokenEstimateTotal
+              texts={book.entries.map((entry) => entry.content)}
+              prefix=" · 全部条目 "
+            />
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <Button onClick={handleSave} size="sm">
             <Save className="h-4 w-4 mr-1" />
             保存

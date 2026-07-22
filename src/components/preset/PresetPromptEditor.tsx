@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { generateId } from "@/lib/utils"
+import { TokenEstimate } from "@/components/token/TokenEstimate"
+import { isPresetMarkerPrompt } from "@/lib/presetMarkers"
 
 interface Props {
   open: boolean
@@ -62,6 +64,7 @@ function PresetPromptEditorForm({
     () => prompt?.system_prompt ?? false
   )
   const marker = prompt?.marker ?? false
+  const isPlaceholder = prompt ? isPresetMarkerPrompt(prompt) : false
   const [forbidOverrides, setForbidOverrides] = useState(
     () => prompt?.forbid_overrides ?? false
   )
@@ -155,12 +158,15 @@ function PresetPromptEditorForm({
 
           {/* 内容 */}
           <div className="space-y-1">
-            <Label className="text-xs">
+            <Label className="flex flex-wrap items-center gap-x-1 text-xs">
               内容
               {marker && (
                 <span className="text-muted-foreground ml-1">
                   （标记类条目不需要编辑内容）
                 </span>
+              )}
+              {!isPlaceholder && (
+                <TokenEstimate text={content} prefix=" · " className="text-[10px]" />
               )}
             </Label>
             <textarea

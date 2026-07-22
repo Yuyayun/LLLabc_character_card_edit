@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { FONT_STORAGE_KEY } from "@/lib/fontSettings"
+import { TOKEN_SETTINGS_STORAGE_KEY } from "@/lib/tokenSettings"
 
 export async function clearCreativeData(): Promise<void> {
   await db.transaction(
@@ -55,6 +56,7 @@ export function clearApplicationPreferences(): void {
   localStorage.removeItem("theme")
   localStorage.removeItem("accentColor")
   localStorage.removeItem(FONT_STORAGE_KEY)
+  localStorage.removeItem(TOKEN_SETTINGS_STORAGE_KEY)
 }
 
 export async function deleteCharacterWithRelations(characterId: string): Promise<void> {

@@ -1,6 +1,8 @@
 import type { PresetPrompt } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Link, Pencil, Trash2 } from "lucide-react"
+import { TokenEstimate } from "@/components/token/TokenEstimate"
+import { isPresetMarkerPrompt } from "@/lib/presetMarkers"
 
 interface Props {
   prompts: PresetPrompt[]
@@ -11,18 +13,6 @@ interface Props {
   search: string
 }
 
-const MARKER_IDENTIFIERS = new Set([
-  "main",
-  "worldInfoBefore",
-  "worldInfoAfter",
-  "charDescription",
-  "charPersonality",
-  "scenario",
-  "dialogueExamples",
-  "chatHistory",
-  "personaDescription",
-])
-
 const roleLabels: Record<string, string> = {
   system: "系统",
   user: "用户",
@@ -30,7 +20,7 @@ const roleLabels: Record<string, string> = {
 }
 
 function promptKind(prompt: PresetPrompt): string {
-  if (prompt.marker || MARKER_IDENTIFIERS.has(prompt.identifier)) return "占位节点"
+  if (isPresetMarkerPrompt(prompt)) return "占位节点"
   if (!prompt.content) return "空内容"
   return "提示词"
 }
@@ -92,11 +82,13 @@ export function PresetPromptPool({
               </span>
               <span className="text-[10px] text-muted-foreground line-clamp-1 block mt-0.5">
                 {[
-                  promptKind(p),
                   roleLabels[p.role] ?? "未指定角色",
                   positionLabel(p),
                   `${p.content?.length ?? 0} 字符`,
                 ].filter(Boolean).join(" · ")}
+                {!isPresetMarkerPrompt(p) && (
+                  <TokenEstimate text={p.content} prefix=" · " />
+                )}
               </span>
               <span className="text-[10px] text-muted-foreground/80 line-clamp-1 block mt-0.5">
                 {p.content

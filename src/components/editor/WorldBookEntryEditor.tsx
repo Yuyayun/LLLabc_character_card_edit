@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { Trash2, ChevronDown, ChevronRight, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TokenEstimate } from "@/components/token/TokenEstimate"
 
 const positionOptions = [
   { value: "0", label: "角色定义之前" },
@@ -387,9 +388,10 @@ export function WorldBookEntryEditor({
           {/* Content + recursion */}
           <section className="space-y-3 border-t pt-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label className="text-xs">
+              <Label className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                 条目内容
-                <span className="text-muted-foreground ml-2">UID: {entry.id}</span>
+                <span className="text-muted-foreground">UID: {entry.id}</span>
+                <TokenEstimate text={entry.content} className="text-[10px]" />
               </Label>
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 <div className="flex items-center gap-1.5">
@@ -429,6 +431,7 @@ export function WorldBookEntryEditor({
             <Textarea
               value={entry.content}
               onChange={(e) => onUpdate({ content: e.target.value })}
+              aria-label={`条目 #${entry.id} 内容`}
               rows={6}
               className="font-mono text-xs h-[140px] overflow-y-auto resize-y min-h-[100px]"
             />

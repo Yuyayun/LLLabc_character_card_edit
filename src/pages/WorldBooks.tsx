@@ -5,8 +5,9 @@ import { generateId } from "@/lib/utils"
 import { createDefaultWorldBookEntry } from "@/lib/helpers"
 import type { WorldBook, WorldBookEntry } from "@/types"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { WorldBookEntryEditor } from "@/components/editor/WorldBookEntryEditor"
+import { WorldBookNameField } from "@/components/editor/WorldBookNameField"
+import { TokenEstimateTotal } from "@/components/token/TokenEstimate"
 import { Plus, BookOpen, Trash2, Save, ExternalLink, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -305,14 +306,16 @@ export function WorldBooks() {
                     : "border-transparent hover:bg-muted/50"
                 )}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium truncate">{item.name}</span>
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 break-words font-medium leading-snug">
+                    {item.name}
+                  </span>
+                  <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
-                  <span>{item.entryCount} 条</span>
+                <div className="mt-1 flex items-start gap-2 text-[10px] text-muted-foreground">
+                  <div className="min-w-0 flex-1">
                   {item.source === "embedded" && (
-                    <span className="bg-muted px-1 rounded-sm">
+                    <span className="inline break-words rounded-sm bg-muted px-1">
                       绑定于 {item.cardName}
                       {item.cardId && (
                         <Link to={`/editor/${item.cardId}`} className="ml-1 hover:text-primary" onClick={(e) => e.stopPropagation()}>
@@ -324,6 +327,8 @@ export function WorldBooks() {
                   {item.source === "standalone" && (
                     <span className="text-muted-foreground">独立</span>
                   )}
+                  </div>
+                  <span className="ml-auto shrink-0">{item.entryCount} 条</span>
                 </div>
               </button>
             ))}
@@ -339,19 +344,23 @@ export function WorldBooks() {
             ) : (
               <div className="space-y-4">
                 {/* 编辑区顶栏 */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap min-w-0">
-                    <Input
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <WorldBookNameField
                       value={editingBook.name}
                       onChange={(e) => setEditingBook({ ...editingBook, name: e.target.value })}
                       placeholder="世界书名称"
-                      className="text-base font-semibold border-none px-0 h-auto max-w-[200px]"
+                      className="min-w-0 flex-1 text-base font-semibold"
                     />
-                    <span className="text-xs text-muted-foreground">
+                    <span className="ml-auto shrink-0 pt-0.5 text-right text-xs text-muted-foreground">
                       {editingBook.entries.length} 条
+                      <TokenEstimateTotal
+                        texts={editingBook.entries.map((entry) => entry.content)}
+                        prefix=" · 全部条目 "
+                      />
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                     <Button onClick={handleSave} size="sm" className="h-8 text-xs">
                       <Save className="h-3.5 w-3.5 mr-1" />
                       保存
