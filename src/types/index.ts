@@ -40,6 +40,9 @@ export interface CharacterCard {
   // 绑定的独立世界书 ID
   bound_worldbook_id?: string
 
+  // 导入时保留完整原始卡数据，导出以此为底覆盖编辑器管理的字段。
+  raw_data?: Record<string, unknown>
+
   created_at: Date
   updated_at: Date
 }
@@ -51,6 +54,7 @@ export interface DepthPrompt {
 }
 
 export interface RegexScript {
+  [key: string]: unknown
   id: string
   scriptName: string
   findRegex: string
@@ -75,12 +79,14 @@ export interface WorldBook {
   entries: WorldBookEntry[]
   is_standalone: boolean
   recursive_scanning?: boolean
+  raw_data?: Record<string, unknown>
 
   created_at: Date
   updated_at: Date
 }
 
 export interface WorldBookEntry {
+  [key: string]: unknown
   id: number
   keys: string[]
   secondary_keys: string[]
@@ -100,6 +106,7 @@ export interface WorldBookEntry {
 }
 
 export interface WorldBookEntryExtensions {
+  [key: string]: unknown
   position: number
   exclude_recursion: boolean
   display_index: number
@@ -182,14 +189,21 @@ export interface Preset {
   // 提示词列表
   prompts: PresetPrompt[]
 
-  // 扩展（兼容酒馆未知字段，导入时原样保留、导出时展开到顶层）
+  // 酒馆可同时保存多个角色组；编辑器只修改 character_id=100001 的组。
+  prompt_order?: PresetPromptOrderGroup[] | PresetPromptOrder[]
+
+  // 扩展（兼容酒馆未知字段；prompt_order 单独保持在预设顶层）
   extensions?: Record<string, unknown>
+
+  // 完整原始预设，用于保留未来版本及第三方顶层字段。
+  raw_data?: Record<string, unknown>
 
   created_at: Date
   updated_at: Date
 }
 
 export interface PresetPrompt {
+  [key: string]: unknown
   identifier: string
   name: string
   enabled: boolean
@@ -205,8 +219,15 @@ export interface PresetPrompt {
 }
 
 export interface PresetPromptOrder {
+  [key: string]: unknown
   identifier: string
   enabled: boolean
+}
+
+export interface PresetPromptOrderGroup {
+  [key: string]: unknown
+  character_id: number | string
+  order: PresetPromptOrder[]
 }
 
 // ========== API 配置 ==========

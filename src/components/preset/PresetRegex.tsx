@@ -259,7 +259,9 @@ export function PresetRegex({ scripts, onChange, onCopyFromPreset }: Props) {
                       checked={!script.disabled}
                       onCheckedChange={(v) => updateScript(script.id, { disabled: !v })}
                     />
-                    <Label className="text-xs">已禁用</Label>
+                    <Label className="text-xs">
+                      {script.disabled ? "已禁用" : "已启用"}
+                    </Label>
                   </div>
                 </div>
               </div>

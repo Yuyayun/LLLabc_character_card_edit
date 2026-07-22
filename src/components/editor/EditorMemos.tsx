@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 interface Props {
   card: CharacterCard
-  onChange: () => void
+  onPendingChange?: (pending: boolean) => void
 }
 
 type ViewMode = "cards" | "timeline"
@@ -44,12 +44,13 @@ function formatDateTime(d: Date | number): string {
   return `${formatDate(d)} ${formatTime(d)}`
 }
 
-export function EditorMemos({ card, onChange }: Props) {
+export function EditorMemos({ card, onPendingChange }: Props) {
   const [memos, setMemos] = useState<Memo[]>([])
   const [view, setView] = useState<ViewMode>("cards")
   const [loading, setLoading] = useState(true)
   const memosRef = useRef<Memo[]>([])
   const saveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const pendingMemos = useRef<Map<string, Memo>>(new Map())
   const sessionStarts = useRef<Map<string, number>>(new Map())
   const sessionTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const newTextareaRef = useRef<HTMLTextAreaElement>(null)
@@ -74,13 +75,25 @@ export function EditorMemos({ card, onChange }: Props) {
     memosRef.current = memos
   }, [memos])
 
-  // 组件卸载时清理所有会话定时器
+  // 切换面板或离开页面时，立即提交尚在防抖窗口中的备忘内容。
   useEffect(() => {
     const activeSessionTimers = sessionTimers.current
+    const activeSaveTimers = saveTimers.current
+    const activePendingMemos = pendingMemos.current
     return () => {
       activeSessionTimers.forEach((timer) => clearTimeout(timer))
+      activeSaveTimers.forEach((timer) => clearTimeout(timer))
+      const pending = [...activePendingMemos.values()]
+      activeSaveTimers.clear()
+      activePendingMemos.clear()
+      onPendingChange?.(false)
+      if (pending.length > 0) {
+        void db.memos.bulkPut(
+          pending.map((memo) => ({ ...memo, updated_at: new Date() }))
+        )
+      }
     }
-  }, [])
+  }, [onPendingChange])
 
   useEffect(() => {
     if (newTextareaRef.current) {
@@ -96,7 +109,7 @@ export function EditorMemos({ card, onChange }: Props) {
       updated_at: new Date(endTime),
       edit_sessions: [...(memo.edit_sessions ?? []), session],
     }
-    db.memos.put(updated).then(() => onChange())
+    void db.memos.put(updated)
     sessionStarts.current.delete(memo.id)
     sessionTimers.current.delete(memo.id)
     // 同步更新本地状态
@@ -108,9 +121,21 @@ export function EditorMemos({ card, onChange }: Props) {
   function saveContent(memo: Memo) {
     const existing = saveTimers.current.get(memo.id)
     if (existing) clearTimeout(existing)
-    const timer = setTimeout(() => {
-      db.memos.put({ ...memo, updated_at: new Date() })
-      saveTimers.current.delete(memo.id)
+    pendingMemos.current.set(memo.id, memo)
+    onPendingChange?.(true)
+    const timer = setTimeout(async () => {
+      try {
+        await db.memos.put({ ...memo, updated_at: new Date() })
+        if (saveTimers.current.get(memo.id) !== timer) return
+        saveTimers.current.delete(memo.id)
+        pendingMemos.current.delete(memo.id)
+        if (pendingMemos.current.size === 0) onPendingChange?.(false)
+      } catch (error) {
+        console.error("保存灵感笔记失败:", error)
+        if (saveTimers.current.get(memo.id) === timer) {
+          saveTimers.current.delete(memo.id)
+        }
+      }
     }, 300)
     saveTimers.current.set(memo.id, timer)
   }
@@ -118,7 +143,6 @@ export function EditorMemos({ card, onChange }: Props) {
   function addMemo() {
     const memo = createDefaultMemo(card.id)
     db.memos.put(memo).then(() => {
-      onChange()
       loadMemos()
     })
   }
@@ -171,9 +195,10 @@ export function EditorMemos({ card, onChange }: Props) {
     const sv = saveTimers.current.get(id)
     if (sv) clearTimeout(sv)
     saveTimers.current.delete(id)
+    pendingMemos.current.delete(id)
+    if (pendingMemos.current.size === 0) onPendingChange?.(false)
 
     db.memos.delete(id).then(() => {
-      onChange()
       loadMemos()
     })
   }
@@ -198,7 +223,7 @@ export function EditorMemos({ card, onChange }: Props) {
     })
 
     setMemos(updated)
-    db.memos.bulkPut(updated).then(() => onChange())
+    void db.memos.bulkPut(updated)
   }
 
   function moveMemo(index: number, direction: -1 | 1) {

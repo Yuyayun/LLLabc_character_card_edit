@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { db } from "@/lib/db"
 import type { CharacterCard } from "@/types"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,10 @@ import { EditorDepth } from "@/components/editor/EditorDepth"
 import { EditorMemos } from "@/components/editor/EditorMemos"
 import { createDefaultCard } from "@/lib/helpers"
 import { cn } from "@/lib/utils"
+import {
+  createEditorSnapshot,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges"
 
 type Section = "basic" | "definition" | "greetings" | "worldbook" | "regex" | "depth" | "memos"
 
@@ -43,16 +47,24 @@ export function Editor() {
 function EditorContent({ id }: { id?: string }) {
   const navigate = useNavigate()
   const isNew = id === "new" || !id
-  const [card, setCard] = useState<CharacterCard | null>(() =>
+  const [initialCard] = useState<CharacterCard | null>(() =>
     isNew ? createDefaultCard() : null
   )
+  const [card, setCard] = useState<CharacterCard | null>(initialCard)
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(() =>
+    initialCard ? createEditorSnapshot(initialCard) : null
+  )
+  const [memoSavePending, setMemoSavePending] = useState(false)
   const [loading, setLoading] = useState(!isNew)
   const [section, setSection] = useState<Section>("basic")
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768)
-  const dirtyRef = useRef(false)
+
+  const cardIsDirty = Boolean(
+    card && savedSnapshot && createEditorSnapshot(card) !== savedSnapshot
+  )
+  const unsavedChanges = useUnsavedChanges(cardIsDirty || memoSavePending)
 
   function handleChange(changed: CharacterCard) {
-    dirtyRef.current = true
     setCard(changed)
   }
 
@@ -66,7 +78,7 @@ function EditorContent({ id }: { id?: string }) {
         if (!active) return
         if (c) {
           setCard(c)
-          dirtyRef.current = false
+          setSavedSnapshot(createEditorSnapshot(c))
         } else {
           toast.error("角色卡不存在")
           navigate("/")
@@ -78,14 +90,6 @@ function EditorContent({ id }: { id?: string }) {
       active = false
     }
   }, [id, isNew, navigate])
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (dirtyRef.current) e.preventDefault()
-    }
-    window.addEventListener("beforeunload", handler)
-    return () => window.removeEventListener("beforeunload", handler)
-  }, [])
 
   async function handleSave() {
     if (!card) return
@@ -99,7 +103,9 @@ function EditorContent({ id }: { id?: string }) {
     }
     try {
       await db.characterCards.put(toSave)
-      dirtyRef.current = false
+      setCard(toSave)
+      setSavedSnapshot(createEditorSnapshot(toSave))
+      unsavedChanges.markClean()
       scheduleSilentUpload()
       toast.success("已保存")
       if (isNew && toSave.id) {
@@ -149,10 +155,7 @@ function EditorContent({ id }: { id?: string }) {
       {/* 顶栏 */}
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 sm:px-4 py-2.5 border-b shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1 basis-full sm:basis-auto">
-          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
-            if (dirtyRef.current && !confirm("有未保存的更改，确认离开？")) return
-            navigate("/")
-          }}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-[140px] flex-1 sm:min-w-0">
@@ -228,11 +231,14 @@ function EditorContent({ id }: { id?: string }) {
             {section === "worldbook" && <EditorWorldBook card={card} onChange={handleChange} />}
             {section === "regex" && <EditorRegex card={card} onChange={handleChange} />}
             {section === "depth" && <EditorDepth card={card} onChange={handleChange} />}
-            {section === "memos" && <EditorMemos card={card} onChange={() => handleChange(card)} />}
+            {section === "memos" && (
+              <EditorMemos card={card} onPendingChange={setMemoSavePending} />
+            )}
           </div>
         </ScrollArea>
       </div>
       </div>
+      {unsavedChanges.dialog}
     </div>
   )
 }

@@ -10,6 +10,11 @@ import { WorldBookEntryEditor } from "@/components/editor/WorldBookEntryEditor"
 import { Plus, BookOpen, Trash2, Save, ExternalLink, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { deleteWorldBookWithBindings } from "@/lib/dataOperations"
+import {
+  createEditorSnapshot,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges"
 
 interface BookListItem {
   id: string
@@ -57,8 +62,14 @@ export function WorldBooks() {
   const [books, setBooks] = useState<BookListItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingBook, setEditingBook] = useState<WorldBook | null>(null)
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const loadVersionRef = useRef(0)
+  const selectionVersionRef = useRef(0)
+  const isDirty = Boolean(
+    editingBook && savedSnapshot && createEditorSnapshot(editingBook) !== savedSnapshot
+  )
+  const unsavedChanges = useUnsavedChanges(isDirty)
 
   const loadAllBooks = useCallback(async () => {
     const version = ++loadVersionRef.current
@@ -73,6 +84,7 @@ export function WorldBooks() {
     if (selectedId && !list.find((b) => b.id === selectedId)) {
       setSelectedId(null)
       setEditingBook(null)
+      setSavedSnapshot(null)
     }
   }, [selectedId])
 
@@ -94,18 +106,27 @@ export function WorldBooks() {
   }, [])
 
   async function selectBook(item: BookListItem) {
-    setSelectedId(item.id)
+    const version = ++selectionVersionRef.current
+    let nextBook: WorldBook | null = null
     if (item.source === "standalone") {
-      const book = await db.worldBooks.get(item.id)
-      setEditingBook(book ?? null)
+      nextBook = (await db.worldBooks.get(item.id)) ?? null
     } else if (item.cardId) {
       const card = await db.characterCards.get(item.cardId)
-      setEditingBook(card?.character_book ?? null)
+      nextBook = card?.character_book ?? null
     }
+    if (version !== selectionVersionRef.current) return
+    if (!nextBook) {
+      toast.error("世界书不存在或已被删除")
+      await loadAllBooks()
+      return
+    }
+    setSelectedId(item.id)
+    setEditingBook(nextBook)
+    setSavedSnapshot(nextBook ? createEditorSnapshot(nextBook) : null)
     setExpanded(new Set())
   }
 
-  async function handleCreate() {
+  async function createBook() {
     const book: WorldBook = {
       id: generateId(),
       name: "未命名世界书",
@@ -121,11 +142,16 @@ export function WorldBooks() {
       await loadAllBooks()
       setSelectedId(book.id)
       setEditingBook(book)
+      setSavedSnapshot(createEditorSnapshot(book))
       setExpanded(new Set())
     } catch (e) {
       console.error("创建世界书失败:", e)
       toast.error("创建失败，请检查存储空间")
     }
+  }
+
+  function handleCreate() {
+    unsavedChanges.requestDiscard(createBook)
   }
 
   async function handleSave() {
@@ -134,17 +160,22 @@ export function WorldBooks() {
 
     // 根据来源保存到对应位置
     const item = books.find((b) => b.id === editingBook.id)
-    if (!item) return
+    if (!item) {
+      toast.error("世界书不存在或已被删除")
+      return
+    }
 
     try {
       if (item.source === "standalone") {
         await db.worldBooks.put(toSave)
       } else if (item.cardId) {
         const card = await db.characterCards.get(item.cardId)
-        if (card) {
-          await db.characterCards.put({ ...card, character_book: toSave, updated_at: new Date() })
-        }
+        if (!card) throw new Error("绑定的角色卡不存在")
+        await db.characterCards.put({ ...card, character_book: toSave, updated_at: new Date() })
       }
+      setEditingBook(toSave)
+      setSavedSnapshot(createEditorSnapshot(toSave))
+      unsavedChanges.markClean()
       toast.success("已保存")
       await loadAllBooks()
     } catch {
@@ -155,21 +186,28 @@ export function WorldBooks() {
   async function handleDelete() {
     if (!editingBook) return
     const item = books.find((b) => b.id === editingBook.id)
-    if (!item) return
-    if (!confirm(`确认删除「${editingBook.name || "未命名世界书"}」？`)) return
+    if (!item) {
+      toast.error("世界书不存在或已被删除")
+      return
+    }
+    const message = item.source === "standalone"
+      ? `确认删除「${editingBook.name || "未命名世界书"}」？\n\n所有角色卡中指向这本世界书的绑定也会一并解除。`
+      : `确认删除「${editingBook.name || "未命名世界书"}」？\n\n这本内嵌世界书会从对应角色卡中移除。`
+    if (!confirm(message)) return
 
     try {
       if (item.source === "standalone") {
-        await db.worldBooks.delete(editingBook.id)
+        await deleteWorldBookWithBindings(editingBook.id)
       } else if (item.cardId) {
         const card = await db.characterCards.get(item.cardId)
-        if (card) {
-          await db.characterCards.put({ ...card, character_book: undefined, updated_at: new Date() })
-        }
+        if (!card) throw new Error("绑定的角色卡不存在")
+        await db.characterCards.put({ ...card, character_book: undefined, updated_at: new Date() })
       }
       toast.success("已删除")
       setSelectedId(null)
       setEditingBook(null)
+      setSavedSnapshot(null)
+      unsavedChanges.markClean()
       await loadAllBooks()
     } catch {
       toast.error("删除失败")
@@ -256,7 +294,10 @@ export function WorldBooks() {
             {books.map((item) => (
               <button
                 key={item.id}
-                onClick={() => selectBook(item)}
+                onClick={() => {
+                  if (selectedId === item.id) return
+                  unsavedChanges.requestDiscard(() => selectBook(item))
+                }}
                 className={cn(
                   "w-full text-left px-3 py-2.5 rounded-lg border transition-all text-sm",
                   selectedId === item.id
@@ -357,6 +398,7 @@ export function WorldBooks() {
           </div>
         </div>
       )}
+      {unsavedChanges.dialog}
     </div>
   )
 }

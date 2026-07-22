@@ -238,7 +238,9 @@ export function EditorRegex({ card, onChange }: Props) {
                       onCheckedChange={(v) => updateScript(script.id, { disabled: !v })}
                       id={`dis-${script.id}`}
                     />
-                    <Label htmlFor={`dis-${script.id}`} className="text-xs">已禁用</Label>
+                    <Label htmlFor={`dis-${script.id}`} className="text-xs">
+                      {script.disabled ? "已禁用" : "已启用"}
+                    </Label>
                   </div>
                 </div>
               </div>

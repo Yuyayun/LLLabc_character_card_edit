@@ -8,12 +8,21 @@ import { ArrowLeft, Save, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { createDefaultWorldBookEntry } from "@/lib/helpers"
 import { WorldBookEntryEditor } from "@/components/editor/WorldBookEntryEditor"
+import {
+  createEditorSnapshot,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges"
 
 export function WorldBookEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [book, setBook] = useState<WorldBook | null>(null)
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const isDirty = Boolean(
+    book && savedSnapshot && createEditorSnapshot(book) !== savedSnapshot
+  )
+  const unsavedChanges = useUnsavedChanges(isDirty)
 
   useEffect(() => {
     if (!id) return
@@ -24,6 +33,7 @@ export function WorldBookEditor() {
         return
       }
       setBook(b)
+      setSavedSnapshot(createEditorSnapshot(b))
     })
   }, [id, navigate])
 
@@ -39,6 +49,9 @@ export function WorldBookEditor() {
     const toSave = { ...book!, updated_at: new Date() }
     try {
       await db.worldBooks.put(toSave)
+      setBook(toSave)
+      setSavedSnapshot(createEditorSnapshot(toSave))
+      unsavedChanges.markClean()
       toast.success("已保存")
     } catch {
       toast.error("保存失败")
@@ -139,6 +152,7 @@ export function WorldBookEditor() {
           ))}
         </div>
       )}
+      {unsavedChanges.dialog}
     </div>
   )
 }

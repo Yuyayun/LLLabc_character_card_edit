@@ -1,5 +1,21 @@
-import type { CharacterCard } from "@/types"
+import type {
+  CharacterCard,
+  Preset,
+  PresetPromptOrder,
+  PresetPromptOrderGroup,
+  RegexScript,
+  WorldBook,
+  WorldBookEntry,
+} from "@/types"
 import { generateId } from "./utils"
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function cloneRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? structuredClone(value) : {}
+}
 
 // ========== 导入 ==========
 
@@ -88,12 +104,13 @@ function extractCardFromPNG(bytes: Uint8Array): { raw: Record<string, unknown> |
   return { raw, rawVersion }
 }
 
-function normalizeCard(raw: Record<string, unknown>): CharacterCard {
+export function normalizeCard(raw: Record<string, unknown>): CharacterCard {
   // 兼容 data 字段 (spec v3, v2)
   const data = (raw.data as Record<string, unknown>) || raw
   const extensions = (data.extensions as Record<string, unknown>) || {}
 
   return {
+    raw_data: structuredClone(raw),
     id: generateId(),
     name: (raw.name as string) || (data.name as string) || "",
     description: (raw.description as string) || (data.description as string) || "",
@@ -152,14 +169,17 @@ function getRegexScripts(data: Record<string, unknown>): ReturnType<typeof norma
   return scripts?.map(normalizeRegex) || []
 }
 
-function normalizeWorldBook(raw: Record<string, unknown> | undefined) {
+function normalizeWorldBook(raw: Record<string, unknown> | undefined): WorldBook | undefined {
   if (!raw || !raw.entries) return undefined
   const entries = raw.entries as Record<string, unknown>[]
   return {
+    ...structuredClone(raw),
+    raw_data: structuredClone(raw),
     id: generateId(),
     name: (raw.name as string) || "未命名世界书",
     description: (raw.description as string) || "",
     entries: entries.map((entry, idx) => ({
+      ...structuredClone(entry),
       id: (entry.id as number) ?? idx,
       keys: (entry.keys as string[]) || [],
       secondary_keys: (entry.secondary_keys as string[]) || [],
@@ -181,6 +201,7 @@ function normalizeWorldBook(raw: Record<string, unknown> | undefined) {
       ),
     })),
     is_standalone: false,
+    recursive_scanning: raw.recursive_scanning as boolean | undefined,
     created_at: new Date(),
     updated_at: new Date(),
   }
@@ -240,6 +261,7 @@ function normalizeEntryExtensions(
     return defVal
   }
   return {
+    ...structuredClone(src),
     position: get<number>("position", def.position),
     exclude_recursion: get<boolean>("exclude_recursion", def.exclude_recursion),
     display_index: get<number>("display_index", def.display_index),
@@ -275,6 +297,7 @@ function normalizeEntryExtensions(
 
 function normalizeRegex(raw: Record<string, unknown>) {
   return {
+    ...structuredClone(raw),
     id: (raw.id as string) || generateId(),
     scriptName: (raw.scriptName as string) || "",
     findRegex: (raw.findRegex as string) || "",
@@ -317,24 +340,7 @@ async function resolveCharacterBook(card: CharacterCard): Promise<CharacterCard>
 
 export async function exportJSON(card: CharacterCard): Promise<void> {
   const resolved = await resolveCharacterBook(card)
-  const specData = buildSpecData(resolved)
-
-  const output: Record<string, unknown> = {
-    name: card.name,
-    description: card.description,
-    personality: card.personality,
-    scenario: card.scenario,
-    first_mes: card.first_mes,
-    mes_example: card.mes_example,
-    creatorcomment: card.creatorcomment,
-    avatar: card.avatar,
-    talkativeness: card.talkativeness,
-    fav: card.fav,
-    tags: card.tags,
-    spec: "chara_card_v3",
-    spec_version: "3.0",
-    data: specData,
-  }
+  const output = buildCardOutput(resolved)
 
   const json = JSON.stringify(output, null, 2)
   downloadFile(json, `${card.name || "character"}.json`, "application/json")
@@ -368,23 +374,7 @@ export async function exportPNG(card: CharacterCard): Promise<void> {
 
   // 构建完整的 SillyTavern 角色卡 JSON（含绑定的世界书）
   const resolved = await resolveCharacterBook(card)
-  const specData = buildSpecData(resolved)
-  const output: Record<string, unknown> = {
-    name: card.name,
-    description: card.description,
-    personality: card.personality,
-    scenario: card.scenario,
-    first_mes: card.first_mes,
-    mes_example: card.mes_example,
-    creatorcomment: card.creatorcomment,
-    avatar: card.avatar,
-    talkativeness: card.talkativeness,
-    fav: card.fav,
-    tags: card.tags,
-    spec: "chara_card_v3",
-    spec_version: "3.0",
-    data: specData,
-  }
+  const output = buildCardOutput(resolved)
 
   const jsonStr = JSON.stringify(output)
   const jsonBytes = new TextEncoder().encode(jsonStr)
@@ -402,8 +392,58 @@ export async function exportPNG(card: CharacterCard): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
-function buildSpecData(card: CharacterCard): Record<string, unknown> {
+function buildWorldBookEntry(entry: WorldBookEntry): Record<string, unknown> {
+  return structuredClone(entry) as Record<string, unknown>
+}
+
+function buildWorldBook(book: WorldBook): Record<string, unknown> {
+  const output = cloneRecord(book.raw_data)
+  output.name = book.name
+  output.description = book.description ?? ""
+  output.entries = book.entries.map(buildWorldBookEntry)
+  if (book.recursive_scanning !== undefined) {
+    output.recursive_scanning = book.recursive_scanning
+  }
+  return output
+}
+
+function buildRegexScripts(scripts: RegexScript[]): Record<string, unknown>[] {
+  return scripts.map((script) => structuredClone(script) as Record<string, unknown>)
+}
+
+function mergeDepthPrompt(
+  raw: unknown,
+  current: CharacterCard["depth_prompt"]
+): Record<string, unknown> {
   return {
+    ...cloneRecord(raw),
+    ...structuredClone(current),
+  }
+}
+
+export function buildCardOutput(card: CharacterCard): Record<string, unknown> {
+  // 与 SillyTavern 的 json_data 策略一致：完整原对象作底，仅覆盖编辑器管理的字段。
+  const output = cloneRecord(card.raw_data)
+  delete output.json_data
+
+  Object.assign(output, {
+    name: card.name,
+    description: card.description,
+    personality: card.personality,
+    scenario: card.scenario,
+    first_mes: card.first_mes,
+    mes_example: card.mes_example,
+    creatorcomment: card.creatorcomment,
+    avatar: card.avatar,
+    talkativeness: card.talkativeness,
+    fav: card.fav,
+    tags: card.tags,
+    spec: "chara_card_v3",
+    spec_version: "3.0",
+  })
+
+  const data = cloneRecord(output.data)
+  Object.assign(data, {
     name: card.name,
     description: card.description,
     personality: card.personality,
@@ -418,22 +458,39 @@ function buildSpecData(card: CharacterCard): Record<string, unknown> {
     character_version: card.character_version,
     alternate_greetings: card.alternate_greetings,
     group_only_greetings: card.group_only_greetings,
-    depth_prompt: card.depth_prompt,
-    extensions: {
-      talkativeness: card.talkativeness,
-      fav: card.fav,
-      world: card.character_book?.name || "",
-      depth_prompt: card.depth_prompt,
-      regex_scripts: card.regex_scripts,
-    },
-    character_book: card.character_book
-      ? {
-          name: card.character_book.name,
-          description: card.character_book.description || "",
-          entries: card.character_book.entries,
-        }
-      : undefined,
+  })
+
+  const regexScripts = buildRegexScripts(card.regex_scripts)
+  const extensions = cloneRecord(data.extensions)
+  Object.assign(extensions, {
+    talkativeness: card.talkativeness,
+    fav: card.fav,
+    world: card.character_book?.name || "",
+    depth_prompt: mergeDepthPrompt(extensions.depth_prompt, card.depth_prompt),
+    regex_scripts: regexScripts,
+  })
+  data.extensions = extensions
+
+  if ("depth_prompt" in data) {
+    data.depth_prompt = mergeDepthPrompt(data.depth_prompt, card.depth_prompt)
   }
+  if ("regex_scripts" in data) {
+    data.regex_scripts = regexScripts
+  }
+
+  if (card.character_book) {
+    const characterBook = buildWorldBook(card.character_book)
+    data.character_book = characterBook
+    if ("world_book" in data) {
+      data.world_book = structuredClone(characterBook)
+    }
+  } else {
+    delete data.character_book
+    delete data.world_book
+  }
+
+  output.data = data
+  return output
 }
 
 // ========== PNG chunk 操作 ==========
@@ -533,10 +590,10 @@ function crc32(data: Uint8Array): number {
 
 // 酒馆预设 JSON 中作为内部字段的键（导出时跳过）
 const PRESET_INTERNAL_KEYS = new Set([
-  "id", "created_at", "updated_at",
+  "id", "created_at", "updated_at", "raw_data",
 ])
 
-export async function parsePresetJSON(file: File): Promise<import("@/types").Preset> {
+export async function parsePresetJSON(file: File): Promise<Preset> {
   const text = await file.text()
   const raw = JSON.parse(text) as Record<string, unknown>
   const preset = normalizePreset(raw)
@@ -547,112 +604,104 @@ export async function parsePresetJSON(file: File): Promise<import("@/types").Pre
   return preset
 }
 
-function normalizePreset(raw: Record<string, unknown>): import("@/types").Preset {
-
-  // 已知字段直接取
-  const known = new Set([
-    "name", "temperature", "frequency_penalty", "presence_penalty",
-    "top_p", "top_k", "top_a", "min_p", "repetition_penalty",
-    "openai_max_context", "openai_max_tokens",
-    "impersonation_prompt", "new_chat_prompt", "new_group_chat_prompt",
-    "new_example_chat_prompt", "continue_nudge_prompt", "group_nudge_prompt",
-    "wi_format", "scenario_format", "personality_format",
-    "assistant_prefill", "assistant_impersonation",
-    "stream_openai", "names_behavior", "wrap_in_quotes", "send_if_empty",
-    "seed", "n", "squash_system_messages", "continue_prefill",
-    "continue_postfix", "function_calling", "show_thoughts",
-    "reasoning_effort", "max_context_unlocked", "bias_preset_selected",
-    "prompts", "extensions",
-  ])
-
-  const knownPreset: Record<string, unknown> = {}
-  const unknown: Record<string, unknown> = {}
-
-  for (const [key, value] of Object.entries(raw)) {
-    if (known.has(key)) {
-      knownPreset[key] = value
-    } else {
-      unknown[key] = value
-    }
-  }
-
-  // 合并 extensions
-  const existingExt = (knownPreset.extensions ?? {}) as Record<string, unknown>
-  const mergedExt = { ...existingExt, ...unknown }
+export function normalizePreset(raw: Record<string, unknown>): Preset {
+  const extensions = cloneRecord(raw.extensions)
+  const rawPromptOrder = Array.isArray(raw.prompt_order)
+    ? raw.prompt_order
+    : Array.isArray(extensions.prompt_order)
+      ? extensions.prompt_order
+      : undefined
 
   return {
+    raw_data: structuredClone(raw),
     id: (raw.id as string) ?? generateId(),
-    name: (knownPreset.name as string) ?? "",
-    temperature: (knownPreset.temperature as number) ?? 1,
-    frequency_penalty: (knownPreset.frequency_penalty as number) ?? 0,
-    presence_penalty: (knownPreset.presence_penalty as number) ?? 0,
-    top_p: (knownPreset.top_p as number) ?? 0.9,
-    top_k: (knownPreset.top_k as number) ?? 1,
-    top_a: (knownPreset.top_a as number) ?? 0,
-    min_p: (knownPreset.min_p as number) ?? 0,
-    repetition_penalty: (knownPreset.repetition_penalty as number) ?? 1,
-    openai_max_context: (knownPreset.openai_max_context as number) ?? 128000,
-    openai_max_tokens: (knownPreset.openai_max_tokens as number) ?? 4096,
-    impersonation_prompt: knownPreset.impersonation_prompt as string | undefined,
-    new_chat_prompt: knownPreset.new_chat_prompt as string | undefined,
-    new_group_chat_prompt: knownPreset.new_group_chat_prompt as string | undefined,
-    new_example_chat_prompt: knownPreset.new_example_chat_prompt as string | undefined,
-    continue_nudge_prompt: knownPreset.continue_nudge_prompt as string | undefined,
-    group_nudge_prompt: knownPreset.group_nudge_prompt as string | undefined,
-    wi_format: knownPreset.wi_format as string | undefined,
-    scenario_format: knownPreset.scenario_format as string | undefined,
-    personality_format: knownPreset.personality_format as string | undefined,
-    assistant_prefill: knownPreset.assistant_prefill as string | undefined,
-    assistant_impersonation: knownPreset.assistant_impersonation as string | undefined,
-    stream_openai: knownPreset.stream_openai as boolean | undefined,
-    names_behavior: knownPreset.names_behavior as number | undefined,
-    wrap_in_quotes: knownPreset.wrap_in_quotes as boolean | undefined,
-    send_if_empty: knownPreset.send_if_empty as string | undefined,
-    seed: knownPreset.seed as number | undefined,
-    n: knownPreset.n as number | undefined,
-    squash_system_messages: knownPreset.squash_system_messages as boolean | undefined,
-    continue_prefill: knownPreset.continue_prefill as boolean | undefined,
-    continue_postfix: knownPreset.continue_postfix as string | undefined,
-    function_calling: knownPreset.function_calling as boolean | undefined,
-    show_thoughts: knownPreset.show_thoughts as boolean | undefined,
-    reasoning_effort: knownPreset.reasoning_effort as string | undefined,
-    max_context_unlocked: knownPreset.max_context_unlocked as boolean | undefined,
-    bias_preset_selected: knownPreset.bias_preset_selected as string | undefined,
-    prompts: Array.isArray(knownPreset.prompts)
-      ? (knownPreset.prompts as unknown as import("@/types").PresetPrompt[])
+    name: (raw.name as string) ?? "",
+    temperature: (raw.temperature as number) ?? 1,
+    frequency_penalty: (raw.frequency_penalty as number) ?? 0,
+    presence_penalty: (raw.presence_penalty as number) ?? 0,
+    top_p: (raw.top_p as number) ?? 0.9,
+    top_k: (raw.top_k as number) ?? 1,
+    top_a: (raw.top_a as number) ?? 0,
+    min_p: (raw.min_p as number) ?? 0,
+    repetition_penalty: (raw.repetition_penalty as number) ?? 1,
+    openai_max_context: (raw.openai_max_context as number) ?? 128000,
+    openai_max_tokens: (raw.openai_max_tokens as number) ?? 4096,
+    impersonation_prompt: raw.impersonation_prompt as string | undefined,
+    new_chat_prompt: raw.new_chat_prompt as string | undefined,
+    new_group_chat_prompt: raw.new_group_chat_prompt as string | undefined,
+    new_example_chat_prompt: raw.new_example_chat_prompt as string | undefined,
+    continue_nudge_prompt: raw.continue_nudge_prompt as string | undefined,
+    group_nudge_prompt: raw.group_nudge_prompt as string | undefined,
+    wi_format: raw.wi_format as string | undefined,
+    scenario_format: raw.scenario_format as string | undefined,
+    personality_format: raw.personality_format as string | undefined,
+    assistant_prefill: raw.assistant_prefill as string | undefined,
+    assistant_impersonation: raw.assistant_impersonation as string | undefined,
+    stream_openai: raw.stream_openai as boolean | undefined,
+    names_behavior: raw.names_behavior as number | undefined,
+    wrap_in_quotes: raw.wrap_in_quotes as boolean | undefined,
+    send_if_empty: raw.send_if_empty as string | undefined,
+    seed: raw.seed as number | undefined,
+    n: raw.n as number | undefined,
+    squash_system_messages: raw.squash_system_messages as boolean | undefined,
+    continue_prefill: raw.continue_prefill as boolean | undefined,
+    continue_postfix: raw.continue_postfix as string | undefined,
+    function_calling: raw.function_calling as boolean | undefined,
+    show_thoughts: raw.show_thoughts as boolean | undefined,
+    reasoning_effort: raw.reasoning_effort as string | undefined,
+    max_context_unlocked: raw.max_context_unlocked as boolean | undefined,
+    bias_preset_selected: raw.bias_preset_selected as string | undefined,
+    prompts: Array.isArray(raw.prompts)
+      ? structuredClone(raw.prompts) as Preset["prompts"]
       : [],
-    extensions: Object.keys(mergedExt).length > 0 ? mergedExt : undefined,
+    prompt_order: rawPromptOrder
+      ? structuredClone(rawPromptOrder) as PresetPromptOrderGroup[] | PresetPromptOrder[]
+      : undefined,
+    extensions: Object.keys(extensions).length > 0 ? extensions : undefined,
     created_at: new Date(),
     updated_at: new Date(),
   }
 }
 
-export function exportPresetJSON(preset: import("@/types").Preset): void {
-  // 组装酒馆兼容输出：跳过内部字段，展开 extensions
-  const output: Record<string, unknown> = {}
+export function buildPresetOutput(preset: Preset): Record<string, unknown> {
+  const output = cloneRecord(preset.raw_data)
 
   for (const [key, value] of Object.entries(preset)) {
     if (PRESET_INTERNAL_KEYS.has(key)) continue
     if (key === "extensions") {
-      const ext = value as Record<string, unknown> | undefined
-      if (ext) {
-        // prompt_order 展开到顶层（酒馆预设格式需要）
-        if (ext.prompt_order) output.prompt_order = ext.prompt_order
-        // 其余保留在 extensions 下（如 regex_scripts）
-        const remaining: Record<string, unknown> = {}
-        for (const ek of Object.keys(ext)) {
-          if (ek !== "prompt_order" && ek !== "preferred_char_id") {
-            remaining[ek] = ext[ek]
-          }
-        }
-        if (Object.keys(remaining).length > 0) {
-          output.extensions = remaining
-        }
+      const extensions = cloneRecord(output.extensions)
+      delete extensions.prompt_order
+      delete extensions.preferred_char_id
+      const currentExtensions = cloneRecord(value)
+      delete currentExtensions.prompt_order
+      delete currentExtensions.preferred_char_id
+      Object.assign(extensions, currentExtensions)
+      if (Object.keys(extensions).length > 0) {
+        output.extensions = extensions
+      } else {
+        delete output.extensions
       }
       continue
     }
-    output[key] = value
+    if (key === "prompt_order") continue
+    if (value !== undefined) output[key] = structuredClone(value)
   }
+
+  const legacyPromptOrder = preset.extensions?.prompt_order
+  const promptOrder = preset.prompt_order ?? (
+    Array.isArray(legacyPromptOrder)
+      ? legacyPromptOrder as PresetPromptOrderGroup[] | PresetPromptOrder[]
+      : undefined
+  )
+  if (promptOrder !== undefined) {
+    output.prompt_order = structuredClone(promptOrder)
+  }
+
+  return output
+}
+
+export function exportPresetJSON(preset: Preset): void {
+  const output = buildPresetOutput(preset)
 
   const json = JSON.stringify(output, null, 2)
   const name = preset.name || "preset"

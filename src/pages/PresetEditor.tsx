@@ -29,6 +29,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  getEditablePresetOrder,
+  updateEditablePresetOrder,
+} from "@/lib/presetOrder"
+import {
+  createEditorSnapshot,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges"
 
 export function PresetEditor() {
   const { id } = useParams<{ id: string }>()
@@ -39,8 +47,20 @@ function PresetEditorContent({ id }: { id?: string }) {
   const navigate = useNavigate()
   const isNew = id === "new" || !id
 
-  const [preset, setPreset] = useState<Preset | null>(() =>
+  const [initialPreset] = useState<Preset | null>(() =>
     isNew ? createDefaultPreset() : null
+  )
+  const [preset, setPreset] = useState<Preset | null>(initialPreset)
+  const [order, setOrder] = useState<PresetPromptOrder[]>(() =>
+    initialPreset ? getEditablePresetOrder(initialPreset) : []
+  )
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(() =>
+    initialPreset
+      ? createEditorSnapshot({
+          preset: initialPreset,
+          order: getEditablePresetOrder(initialPreset),
+        })
+      : null
   )
   const [loading, setLoading] = useState(!isNew)
 
@@ -52,35 +72,20 @@ function PresetEditorContent({ id }: { id?: string }) {
   const [search, setSearch] = useState("")
   const [editingPrompt, setEditingPrompt] = useState<PresetPrompt | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
+  const [promptEditorDirty, setPromptEditorDirty] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [order, setOrder] = useState<PresetPromptOrder[]>([])
 
   // 移动到 Dialog 状态
   const [moveOpen, setMoveOpen] = useState(false)
   const [moveSearch, setMoveSearch] = useState("")
   const [moveSelectedId, setMoveSelectedId] = useState<string | null>(null)
   const [copyOpen, setCopyOpen] = useState(false)
-
-  // 从 prompts + prompt_order 初始化列表顺序
-  function buildOrder(p: Preset): PresetPromptOrder[] {
-    const raw = p.extensions?.prompt_order
-    if (Array.isArray(raw) && raw.length > 0) {
-      const preferred = raw.find(
-        (e) => (e as Record<string, unknown>).character_id !== 100000
-      )
-      const target = (preferred ?? raw[0]) as Record<string, unknown>
-      if (Array.isArray(target.order) && target.order.length > 0) {
-        return target.order as PresetPromptOrder[]
-      }
-      if (target.identifier !== undefined) {
-        return raw as unknown as PresetPromptOrder[]
-      }
-    }
-    return p.prompts
-      .filter((pp) => pp.identifier)
-      .sort((a, b) => a.injection_order - b.injection_order)
-      .map((pp) => ({ identifier: pp.identifier, enabled: pp.enabled }))
-  }
+  const pageIsDirty = Boolean(
+    preset &&
+    savedSnapshot &&
+    createEditorSnapshot({ preset, order }) !== savedSnapshot
+  )
+  const unsavedChanges = useUnsavedChanges(pageIsDirty || promptEditorDirty)
 
   useEffect(() => {
     if (isNew) return
@@ -91,8 +96,10 @@ function PresetEditorContent({ id }: { id?: string }) {
       .then((p) => {
         if (!active) return
         if (p) {
+          const loadedOrder = getEditablePresetOrder(p)
           setPreset(p)
-          setOrder(buildOrder(p))
+          setOrder(loadedOrder)
+          setSavedSnapshot(createEditorSnapshot({ preset: p, order: loadedOrder }))
         } else {
           toast.error("预设不存在")
           navigate("/presets")
@@ -111,21 +118,20 @@ function PresetEditorContent({ id }: { id?: string }) {
 
   async function handleSave() {
     if (!preset) return
-    const promptOrderWrapped = order.length > 0
-      ? [{ character_id: preset.extensions?.preferred_char_id as number ?? 100001, order }]
-      : []
+    const extensions = { ...(preset.extensions ?? {}) }
+    delete extensions.prompt_order
+    delete extensions.preferred_char_id
     const toSave: Preset = {
       ...preset,
-      extensions: {
-        ...(preset.extensions ?? {}),
-        prompt_order: promptOrderWrapped,
-        preferred_char_id: 100001,
-      },
+      prompt_order: updateEditablePresetOrder(preset, order),
+      extensions: Object.keys(extensions).length > 0 ? extensions : undefined,
       updated_at: new Date(),
     }
     try {
       await db.presets.put(toSave)
       handleChange(toSave)
+      setSavedSnapshot(createEditorSnapshot({ preset: toSave, order }))
+      unsavedChanges.markClean()
       toast.success("已保存")
       if (isNew && toSave.id) {
         navigate(`/preset/${toSave.id}`, { replace: true })
@@ -138,7 +144,10 @@ function PresetEditorContent({ id }: { id?: string }) {
   function handleExport() {
     if (!preset) return
     try {
-      exportPresetJSON(preset)
+      exportPresetJSON({
+        ...preset,
+        prompt_order: updateEditablePresetOrder(preset, order),
+      })
       toast.success("已导出")
     } catch {
       toast.error("导出失败")
@@ -169,11 +178,13 @@ function PresetEditorContent({ id }: { id?: string }) {
 
   function handleNewPrompt() {
     setEditingPrompt(null)
+    setPromptEditorDirty(false)
     setEditorOpen(true)
   }
 
   function handleEditPrompt(prompt: PresetPrompt) {
     setEditingPrompt(prompt)
+    setPromptEditorDirty(false)
     setEditorOpen(true)
   }
 
@@ -187,7 +198,29 @@ function PresetEditorContent({ id }: { id?: string }) {
     } else {
       handleChange({ ...preset, prompts: [...preset.prompts, prompt] })
     }
+    setPromptEditorDirty(false)
     setEditorOpen(false)
+  }
+
+  function handlePromptEditorOpenChange(open: boolean) {
+    if (open) {
+      setEditorOpen(true)
+      return
+    }
+    if (!promptEditorDirty) {
+      setEditorOpen(false)
+      return
+    }
+    unsavedChanges.requestDiscard(
+      () => {
+        setPromptEditorDirty(false)
+        setEditorOpen(false)
+      },
+      {
+        title: "放弃这条提示词的修改？",
+        description: "这条提示词尚未保存到当前预设。继续关闭会丢失本次输入。",
+      }
+    )
   }
 
   function handleInsertFromPool(identifier: string) {
@@ -628,9 +661,10 @@ function PresetEditorContent({ id }: { id?: string }) {
       {/* Prompt 编辑对话框 */}
       <PresetPromptEditor
         open={editorOpen}
-        onOpenChange={setEditorOpen}
+        onOpenChange={handlePromptEditorOpenChange}
         prompt={editingPrompt}
         onSave={handleSavePrompt}
+        onDirtyChange={setPromptEditorDirty}
       />
 
       <PresetCopyDialog
@@ -748,6 +782,7 @@ function PresetEditorContent({ id }: { id?: string }) {
           </div>
         </DialogContent>
       </Dialog>
+      {unsavedChanges.dialog}
     </div>
   )
 }

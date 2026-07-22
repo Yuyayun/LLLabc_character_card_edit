@@ -11,11 +11,18 @@ import {
   Upload,
   Download,
   Trash2,
+  RotateCcw,
   Search,
   User,
 } from "lucide-react"
 import { toast } from "sonner"
 import { importCard } from "@/lib/parser"
+import {
+  clearApplicationPreferences,
+  clearCreativeData,
+  deleteCharacterWithRelations,
+  resetApplicationData,
+} from "@/lib/dataOperations"
 
 export function Dashboard() {
   const [cards, setCards] = useState<CharacterCard[]>([])
@@ -110,24 +117,48 @@ export function Dashboard() {
     e.target.value = ""
   }
 
-  async function handleClearAll() {
-    if (!confirm("确认清空全部数据？此操作不可撤销！")) return
-    await db.characterCards.clear()
-    await db.worldBooks.clear()
-    await db.presets.clear()
-    await db.apiConfigs.clear()
-    await db.chatSessions.clear()
-    setCards([])
-    toast.success("已清空全部数据")
+  async function handleClearData() {
+    if (!confirm(
+      "确认清空创作数据？\n\n会删除：角色卡、世界书、预设、灵感笔记和聊天记录。\n会保留：API 配置、云同步设置、应用设置、字体和主题偏好。\n\n此操作不可撤销。"
+    )) return
+
+    try {
+      await clearCreativeData()
+      setCards([])
+      toast.success("创作数据已清空")
+    } catch {
+      toast.error("清空失败，原有数据未被部分删除")
+    }
+  }
+
+  async function handleResetApplication() {
+    if (!confirm(
+      "确认重置应用？\n\n会删除全部创作数据、API 配置、云同步设置、应用设置、字体设置和主题偏好，并恢复默认外观。\n\n此操作不可撤销。"
+    )) return
+
+    try {
+      await resetApplicationData()
+      clearApplicationPreferences()
+      setCards([])
+      window.location.reload()
+    } catch {
+      toast.error("重置失败，数据库内容未被部分删除")
+    }
   }
 
   async function handleDeleteCard(id: string) {
     const card = await db.characterCards.get(id)
     if (!card) return
-    if (!confirm(`确认删除「${card.name}」？`)) return
-    await db.characterCards.delete(id)
-    loadCards()
-    toast.success(`已删除「${card.name}」`)
+    if (!confirm(
+      `确认删除「${card.name}」？\n\n该角色卡关联的灵感笔记和聊天记录也会一并删除。`
+    )) return
+    try {
+      await deleteCharacterWithRelations(id)
+      loadCards()
+      toast.success(`已删除「${card.name}」及关联记录`)
+    } catch {
+      toast.error("删除失败，角色卡和关联记录均未更改")
+    }
   }
 
   if (loading) {
@@ -174,11 +205,20 @@ export function Dashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleClearAll}
+            onClick={handleClearData}
             className="h-9 text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4 mr-1" />
-            清空
+            清空数据
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResetApplication}
+            className="h-9 text-destructive hover:text-destructive"
+          >
+            <RotateCcw className="h-4 w-4 mr-1" />
+            重置应用
           </Button>
         </div>
       </div>

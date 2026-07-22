@@ -797,6 +797,25 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.5
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-07-22
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>角色卡、世界书和预设新增未保存修改保护，离开、返回、刷新或切换编辑对象前会先确认</li>
+                <li>数据管理拆分为“清空数据”和“重置应用”，可选择保留或一并清除云同步、设置、字体与主题偏好</li>
+                <li>删除角色卡时同步清理对应备忘录与聊天记录，删除独立世界书时自动解除已有绑定</li>
+                <li>增强角色卡、世界书、正则与预设的酒馆格式兼容，导入再导出时保留未编辑的原始扩展字段</li>
+                <li>预设会保留原有的多角色提示词顺序组，只修改当前角色组</li>
+                <li>修正角色卡与预设正则开关文案，并降低备忘录延迟保存内容在离页时丢失的风险</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.1.4
                 </span>
                 <span className="text-xs text-muted-foreground">

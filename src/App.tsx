@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from "react-router-dom"
+import { createHashRouter, Outlet, RouterProvider } from "react-router-dom"
 import { ThemeProvider } from "@/components/layout/ThemeProvider"
 import { FontProvider } from "@/components/layout/FontProvider"
 import { AppLayout } from "@/components/layout/AppLayout"
@@ -12,29 +12,38 @@ import { Settings } from "@/pages/Settings"
 import { Presets } from "@/pages/Presets"
 import { PresetEditor } from "@/pages/PresetEditor"
 
-export default function App() {
+function AppShell() {
   return (
-    <HashRouter>
-      <ThemeProvider>
-        <FontProvider>
-          <ErrorBoundary>
-            <AppLayout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/editor/:id" element={<Editor />} />
-                <Route path="/editor/new" element={<Editor />} />
-                <Route path="/worldbooks" element={<WorldBooks />} />
-                <Route path="/worldbook/:id" element={<WorldBookEditor />} />
-                <Route path="/chat" element={<Chat />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/presets" element={<Presets />} />
-                <Route path="/preset/:id" element={<PresetEditor />} />
-                <Route path="/preset/new" element={<PresetEditor />} />
-              </Routes>
-            </AppLayout>
-          </ErrorBoundary>
-        </FontProvider>
-      </ThemeProvider>
-    </HashRouter>
+    <ThemeProvider>
+      <FontProvider>
+        <ErrorBoundary>
+          <AppLayout>
+            <Outlet />
+          </AppLayout>
+        </ErrorBoundary>
+      </FontProvider>
+    </ThemeProvider>
   )
+}
+
+const router = createHashRouter([
+  {
+    element: <AppShell />,
+    children: [
+      { path: "/", element: <Dashboard /> },
+      { path: "/editor/:id", element: <Editor /> },
+      { path: "/editor/new", element: <Editor /> },
+      { path: "/worldbooks", element: <WorldBooks /> },
+      { path: "/worldbook/:id", element: <WorldBookEditor /> },
+      { path: "/chat", element: <Chat /> },
+      { path: "/settings", element: <Settings /> },
+      { path: "/presets", element: <Presets /> },
+      { path: "/preset/:id", element: <PresetEditor /> },
+      { path: "/preset/new", element: <PresetEditor /> },
+    ],
+  },
+])
+
+export default function App() {
+  return <RouterProvider router={router} />
 }

@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Copy } from "lucide-react"
+import { getEditablePresetOrder } from "@/lib/presetOrder"
 
 const MARKER_IDENTIFIERS = new Set([
   "main",
@@ -79,23 +80,7 @@ function uniqueCopyName(rawName: string, usedNames: Set<string>): string {
 }
 
 function presetOrderIdentifiers(preset: Preset): string[] {
-  const raw = preset.extensions?.prompt_order
-  if (Array.isArray(raw) && raw.length > 0) {
-    const preferred = raw.find(
-      (entry) => (entry as Record<string, unknown>).character_id !== 100000
-    )
-    const target = (preferred ?? raw[0]) as Record<string, unknown>
-    if (Array.isArray(target.order)) {
-      return (target.order as PresetPromptOrder[]).map((entry) => entry.identifier)
-    }
-    if (target.identifier !== undefined) {
-      return (raw as unknown as PresetPromptOrder[]).map((entry) => entry.identifier)
-    }
-  }
-  return preset.prompts
-    .filter((prompt) => prompt.identifier)
-    .sort((a, b) => a.injection_order - b.injection_order)
-    .map((prompt) => prompt.identifier)
+  return getEditablePresetOrder(preset).map((entry) => entry.identifier)
 }
 
 function orderedPresetPrompts(preset: Preset): PresetPrompt[] {

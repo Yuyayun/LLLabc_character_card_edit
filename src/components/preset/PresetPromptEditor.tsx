@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { PresetPrompt } from "@/types"
 import {
   Dialog,
@@ -18,6 +18,7 @@ interface Props {
   onOpenChange: (open: boolean) => void
   prompt: PresetPrompt | null
   onSave: (prompt: PresetPrompt) => void
+  onDirtyChange?: (dirty: boolean) => void
 }
 
 const ROLES = [
@@ -39,7 +40,13 @@ export function PresetPromptEditor(props: Props) {
   return <PresetPromptEditorForm key={editorKey} {...props} />
 }
 
-function PresetPromptEditorForm({ open, onOpenChange, prompt, onSave }: Props) {
+function PresetPromptEditorForm({
+  open,
+  onOpenChange,
+  prompt,
+  onSave,
+  onDirtyChange,
+}: Props) {
   const [name, setName] = useState(() => prompt?.name ?? "")
   const [content, setContent] = useState(() => prompt?.content ?? "")
   const [role, setRole] = useState<"system" | "user" | "assistant">(
@@ -58,10 +65,43 @@ function PresetPromptEditorForm({ open, onOpenChange, prompt, onSave }: Props) {
   const [forbidOverrides, setForbidOverrides] = useState(
     () => prompt?.forbid_overrides ?? false
   )
+  const [initialSnapshot] = useState(() => JSON.stringify({
+    name: prompt?.name ?? "",
+    content: prompt?.content ?? "",
+    role: prompt?.role ?? "system",
+    injectionPosition: prompt?.injection_position ?? 0,
+    injectionDepth: prompt?.injection_depth ?? 4,
+    systemPrompt: prompt?.system_prompt ?? false,
+    forbidOverrides: prompt?.forbid_overrides ?? false,
+  }))
+
+  useEffect(() => {
+    const currentSnapshot = JSON.stringify({
+      name,
+      content,
+      role,
+      injectionPosition,
+      injectionDepth,
+      systemPrompt,
+      forbidOverrides,
+    })
+    onDirtyChange?.(currentSnapshot !== initialSnapshot)
+  }, [
+    content,
+    forbidOverrides,
+    initialSnapshot,
+    injectionDepth,
+    injectionPosition,
+    name,
+    onDirtyChange,
+    role,
+    systemPrompt,
+  ])
 
   function handleSave() {
     if (!name.trim()) return
     onSave({
+      ...(prompt ?? {}),
       identifier: prompt?.identifier ?? generateId(),
       name: name.trim(),
       enabled: prompt?.enabled ?? true,
