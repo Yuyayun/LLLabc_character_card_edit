@@ -898,6 +898,24 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.9
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-07-24
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>世界书主页面新增 SillyTavern 独立世界书 JSON 导入，可明确提示解析或结构错误</li>
+                <li>独立世界书和角色卡内嵌世界书均可直接导出为酒馆 UID 对象格式，无需先复制或保存</li>
+                <li>位置、递归、概率、分组、角色过滤与触发条件完整转换，未知扩展字段继续保留</li>
+                <li>重复或无效 UID 会在转换副本中稳定修复，不会随机改写当前数据库条目</li>
+                <li>同名覆盖保留原世界书 ID、创建时间及角色卡绑定，失败时完整回滚</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.1.8
                 </span>
                 <span className="text-xs text-muted-foreground">

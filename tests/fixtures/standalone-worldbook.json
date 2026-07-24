@@ -1,0 +1,113 @@
+{
+    "name": "固定上游世界书",
+    "description": "SillyTavern 独立世界书代表性夹具",
+    "future_top_level": {
+        "keep": "top-level"
+    },
+    "extensions": {
+        "future_book_extension": "keep"
+    },
+    "originalData": {
+        "legacy_marker": "preserve-without-nesting"
+    },
+    "entries": {
+        "7": {
+            "uid": 7,
+            "key": [
+                "alpha",
+                "beta"
+            ],
+            "keysecondary": [
+                "secondary"
+            ],
+            "comment": "完整字段条目",
+            "content": "第一条内容",
+            "constant": false,
+            "vectorized": true,
+            "selective": true,
+            "selectiveLogic": 3,
+            "order": 321,
+            "position": 4,
+            "disable": false,
+            "addMemo": true,
+            "characterFilter": {
+                "names": [
+                    "Alice.png"
+                ],
+                "tags": [
+                    "tag-id"
+                ],
+                "isExclude": true,
+                "future_filter_field": "keep"
+            },
+            "excludeRecursion": true,
+            "preventRecursion": true,
+            "delayUntilRecursion": 3,
+            "displayIndex": 12,
+            "probability": 73,
+            "useProbability": true,
+            "depth": 8,
+            "outletName": "archive",
+            "group": "fixture-group",
+            "groupOverride": true,
+            "groupWeight": 88,
+            "scanDepth": null,
+            "caseSensitive": null,
+            "matchWholeWords": false,
+            "useGroupScoring": true,
+            "automationId": "fixture-auto",
+            "role": 2,
+            "sticky": null,
+            "cooldown": 5,
+            "delay": 0,
+            "matchPersonaDescription": true,
+            "matchCharacterDescription": true,
+            "matchCharacterPersonality": false,
+            "matchCharacterDepthPrompt": true,
+            "matchScenario": false,
+            "matchCreatorNotes": true,
+            "triggers": [
+                "normal",
+                "continue"
+            ],
+            "ignoreBudget": true,
+            "future_entry_field": {
+                "keep": "entry"
+            },
+            "extensions": {
+                "position": 99,
+                "vectorized": false,
+                "selectiveLogic": 0,
+                "delay_until_recursion": false,
+                "future_entry_extension": {
+                    "keep": "extension"
+                }
+            }
+        },
+        "9": {
+            "uid": 9,
+            "key": [
+                "gamma"
+            ],
+            "keysecondary": [],
+            "comment": "禁用条目",
+            "content": "第二条内容",
+            "constant": false,
+            "vectorized": false,
+            "selective": false,
+            "selectiveLogic": 0,
+            "order": 50,
+            "position": 1,
+            "disable": true,
+            "addMemo": false,
+            "delayUntilRecursion": false,
+            "scanDepth": 6,
+            "caseSensitive": true,
+            "matchWholeWords": null,
+            "useGroupScoring": null,
+            "extensions": {
+                "future_second_extension": "keep"
+            }
+        }
+    }
+}

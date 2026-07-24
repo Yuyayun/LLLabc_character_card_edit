@@ -80,6 +80,7 @@ export interface WorldBook {
   is_standalone: boolean
   recursive_scanning?: boolean
   raw_data?: Record<string, unknown>
+  source_file_name?: string
 
   created_at: Date
   updated_at: Date

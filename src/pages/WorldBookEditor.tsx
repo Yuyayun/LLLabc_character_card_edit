@@ -5,10 +5,12 @@ import type { WorldBook, WorldBookEntry } from "@/types"
 import { Button } from "@/components/ui/button"
 import { WorldBookNameField } from "@/components/editor/WorldBookNameField"
 import { TokenEstimateTotal } from "@/components/token/TokenEstimate"
-import { ArrowLeft, Save, Plus } from "lucide-react"
+import { ArrowLeft, Download, Save, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { createDefaultWorldBookEntry } from "@/lib/helpers"
 import { WorldBookEntryEditor } from "@/components/editor/WorldBookEntryEditor"
+import { downloadFile } from "@/lib/file"
+import { buildStandaloneWorldInfoExportFile } from "@/lib/parsers/worldbook"
 import {
   createEditorSnapshot,
   useUnsavedChanges,
@@ -56,6 +58,28 @@ export function WorldBookEditor() {
       toast.success("已保存")
     } catch {
       toast.error("保存失败")
+    }
+  }
+
+  function handleExport() {
+    try {
+      const exported = buildStandaloneWorldInfoExportFile(book!, {
+        source: "standalone",
+      })
+      downloadFile(
+        exported.content,
+        exported.filename,
+        "application/json"
+      )
+      toast.success(`已导出「${book!.name}」`)
+      if (exported.repairedUidCount > 0) {
+        toast.warning(
+          `导出副本中已稳定修复 ${exported.repairedUidCount} 个重复或无效 UID，当前数据未被修改`
+        )
+      }
+    } catch (error) {
+      console.error("导出世界书失败:", error)
+      toast.error("导出失败，请稍后重试")
     }
   }
 
@@ -132,6 +156,10 @@ export function WorldBookEditor() {
           <Button onClick={handleSave} size="sm">
             <Save className="h-4 w-4 mr-1" />
             保存
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-1" />
+            导出
           </Button>
           <Button variant="outline" size="sm" onClick={addEntry}>
             <Plus className="h-4 w-4 mr-1" />

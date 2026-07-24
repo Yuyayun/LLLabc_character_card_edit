@@ -8,14 +8,45 @@ import { Button } from "@/components/ui/button"
 import { WorldBookEntryEditor } from "@/components/editor/WorldBookEntryEditor"
 import { WorldBookNameField } from "@/components/editor/WorldBookNameField"
 import { TokenEstimateTotal } from "@/components/token/TokenEstimate"
-import { Plus, BookOpen, Trash2, Save, ExternalLink, ChevronRight } from "lucide-react"
+import {
+  Plus,
+  BookOpen,
+  Trash2,
+  Save,
+  ExternalLink,
+  ChevronRight,
+  Download,
+  Loader2,
+  Upload,
+} from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { deleteWorldBookWithBindings } from "@/lib/dataOperations"
+import { downloadFile } from "@/lib/file"
+import {
+  buildStandaloneWorldInfoExportFile,
+  parseStandaloneWorldInfoFile,
+  type StandaloneWorldInfoImportResult,
+} from "@/lib/parsers/worldbook"
+import {
+  findStandaloneWorldBookByName,
+  storeStandaloneWorldBookImport,
+  WorldBookImportConflictError,
+} from "@/lib/worldbookOperations"
 import {
   createEditorSnapshot,
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface BookListItem {
   id: string
@@ -24,6 +55,11 @@ interface BookListItem {
   source: "standalone" | "embedded"
   cardName?: string
   cardId?: string
+}
+
+interface PendingWorldBookImport
+  extends StandaloneWorldInfoImportResult {
+  existingId: string
 }
 
 async function queryAllBooks(): Promise<BookListItem[]> {
@@ -65,8 +101,12 @@ export function WorldBooks() {
   const [editingBook, setEditingBook] = useState<WorldBook | null>(null)
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [isImporting, setIsImporting] = useState(false)
+  const [pendingImport, setPendingImport] =
+    useState<PendingWorldBookImport | null>(null)
   const loadVersionRef = useRef(0)
   const selectionVersionRef = useRef(0)
+  const importInputRef = useRef<HTMLInputElement>(null)
   const isDirty = Boolean(
     editingBook && savedSnapshot && createEditorSnapshot(editingBook) !== savedSnapshot
   )
@@ -153,6 +193,134 @@ export function WorldBooks() {
 
   function handleCreate() {
     unsavedChanges.requestDiscard(createBook)
+  }
+
+  async function showImportedBook(book: WorldBook) {
+    const version = ++loadVersionRef.current
+    const list = await queryAllBooks()
+    if (version !== loadVersionRef.current) return
+
+    setBooks(list)
+    setSelectedId(book.id)
+    setEditingBook(book)
+    setSavedSnapshot(createEditorSnapshot(book))
+    setExpanded(new Set())
+    unsavedChanges.markClean()
+  }
+
+  async function persistImportedBook(
+    result: StandaloneWorldInfoImportResult,
+    overwriteId?: string
+  ) {
+    const stored = await storeStandaloneWorldBookImport(
+      result.book,
+      { overwriteId }
+    )
+    await showImportedBook(stored)
+    toast.success(
+      `${overwriteId ? "已覆盖" : "已导入"}「${stored.name}」，共 ${stored.entries.length} 条`
+    )
+    if (result.repairedUidCount > 0) {
+      toast.warning(
+        `导入时已修复 ${result.repairedUidCount} 个缺失、重复或无效 UID`
+      )
+    }
+  }
+
+  function importErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) {
+      return error.message
+    }
+    return "存储失败，请检查浏览器存储空间"
+  }
+
+  async function processImportFile(file: File) {
+    setIsImporting(true)
+    try {
+      const result = await parseStandaloneWorldInfoFile(file)
+      const existing = await findStandaloneWorldBookByName(
+        result.book.name
+      )
+      if (existing) {
+        setPendingImport({
+          ...result,
+          existingId: existing.id,
+        })
+        return
+      }
+      await persistImportedBook(result)
+    } catch (error) {
+      console.error("导入世界书失败:", error)
+      toast.error(importErrorMessage(error))
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  function handleImportFile(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+
+    unsavedChanges.requestDiscard(
+      () => processImportFile(file),
+      {
+        title: "放弃修改并导入世界书？",
+        description:
+          "导入后会切换到新世界书。当前尚未保存的修改将会丢失。",
+      }
+    )
+  }
+
+  async function confirmOverwriteImport() {
+    const current = pendingImport
+    if (!current) return
+    setPendingImport(null)
+    setIsImporting(true)
+    try {
+      await persistImportedBook(current, current.existingId)
+    } catch (error) {
+      console.error("覆盖世界书失败:", error)
+      const message =
+        error instanceof WorldBookImportConflictError
+          ? error.message
+          : importErrorMessage(error)
+      toast.error(message)
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  function handleExport() {
+    if (!editingBook) return
+    const item = books.find((book) => book.id === editingBook.id)
+    if (!item) {
+      toast.error("世界书不存在或已被删除")
+      return
+    }
+
+    try {
+      const exported = buildStandaloneWorldInfoExportFile(
+        editingBook,
+        { source: item.source }
+      )
+      downloadFile(
+        exported.content,
+        exported.filename,
+        "application/json"
+      )
+      toast.success(`已导出「${editingBook.name}」`)
+      if (exported.repairedUidCount > 0) {
+        toast.warning(
+          `导出副本中已稳定修复 ${exported.repairedUidCount} 个重复或无效 UID，当前数据未被修改`
+        )
+      }
+    } catch (error) {
+      console.error("导出世界书失败:", error)
+      toast.error("导出失败，请稍后重试")
+    }
   }
 
   async function handleSave() {
@@ -274,10 +442,32 @@ export function WorldBooks() {
     <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
         <h1 className="text-xl sm:text-2xl font-bold">世界书</h1>
-        <Button onClick={handleCreate} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          新建
-        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isImporting}
+            onClick={() => importInputRef.current?.click()}
+          >
+            {isImporting ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-1" />
+            )}
+            {isImporting ? "导入中" : "导入"}
+          </Button>
+          <Button onClick={handleCreate} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            新建
+          </Button>
+        </div>
       </div>
 
       {books.length === 0 ? (
@@ -365,6 +555,15 @@ export function WorldBooks() {
                       <Save className="h-3.5 w-3.5 mr-1" />
                       保存
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={handleExport}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      导出
+                    </Button>
                     <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addEntry}>
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       添加条目
@@ -408,6 +607,35 @@ export function WorldBooks() {
         </div>
       )}
       {unsavedChanges.dialog}
+      <AlertDialog
+        open={pendingImport !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingImport(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>覆盖同名世界书？</AlertDialogTitle>
+            <AlertDialogDescription>
+              已存在「{pendingImport?.book.name}」。覆盖会保留原数据库
+              ID、创建时间和所有角色卡绑定，只替换世界书内容。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setPendingImport(null)}
+            >
+              取消导入
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isImporting}
+              onClick={() => void confirmOverwriteImport()}
+            >
+              覆盖
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
