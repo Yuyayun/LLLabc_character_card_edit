@@ -1,0 +1,26 @@
+[
+    {
+        "id": "must-be-replaced",
+        "scriptName": "imported-four",
+        "findRegex": "/legacy/g",
+        "replaceString": "ok",
+        "placement": [
+            4
+        ],
+        "future_regex_field": {
+            "keep": true
+        }
+    },
+    {
+        "scriptName": 42
+    },
+    {
+        "scriptName": "imported-zero",
+        "placement": [
+            0,
+            6
+        ],
+        "markdownOnly": false,
+        "promptOnly": false
+    }
+]

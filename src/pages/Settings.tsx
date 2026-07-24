@@ -898,6 +898,24 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.8
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-07-24
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>Regex 新增兼容酒馆格式的独立 JSON 导入导出，支持单条、数组和多文件批量导入</li>
+                <li>角色卡与预设统一使用选择模式、批量导出、上下/顶部/底部及指定位置排序</li>
+                <li>Regex 可在已保存的角色卡与预设之间复制或移动；移动失败时源与目标都会回滚</li>
+                <li>旧作用范围 0 与 4 会按酒馆规则迁移，第三方未知字段仍会完整保留</li>
+                <li>未保存页面和新建记录会先要求保存，避免跨对象操作覆盖当前修改</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.1.7
                 </span>
                 <span className="text-xs text-muted-foreground">

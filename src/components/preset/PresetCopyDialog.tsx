@@ -15,6 +15,7 @@ import {
 import { Copy } from "lucide-react"
 import { getEditablePresetOrder } from "@/lib/presetOrder"
 import { isPresetMarkerPrompt } from "@/lib/presetMarkers"
+import { normalizeRegexScripts } from "@/lib/parsers/regex"
 
 interface CopyPayload {
   prompts: PresetPrompt[]
@@ -126,8 +127,13 @@ export function PresetCopyDialog({
     () => (sourcePreset ? orderedPresetPrompts(sourcePreset) : []),
     [sourcePreset]
   )
-  const sourceRegexScripts =
-    (sourcePreset?.extensions?.regex_scripts as RegexScript[] | undefined) ?? []
+  const sourceRegexScripts = useMemo(
+    () =>
+      normalizeRegexScripts(
+        sourcePreset?.extensions?.regex_scripts
+      ),
+    [sourcePreset]
+  )
   const targetPromptMap = new Map(targetPrompts.map((prompt) => [prompt.identifier, prompt]))
   const selectedCount = selectedPromptIds.size + selectedRegexIds.size
 

@@ -20,8 +20,8 @@ export class AppDB extends Dexie {
   cloudSync!: EntityTable<CloudSyncConfig, "id">
   settings!: EntityTable<AppSetting, "key">
 
-  constructor() {
-    super("CharCardEditorDB")
+  constructor(name = "CharCardEditorDB") {
+    super(name)
 
     this.version(1).stores({
       characterCards: "id, name, created_at, updated_at",

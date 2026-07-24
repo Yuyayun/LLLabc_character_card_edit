@@ -39,6 +39,25 @@ import {
 } from "@/hooks/useUnsavedChanges"
 import { useTokenCounts } from "@/hooks/useTokenCount"
 import { isPresetMarkerPrompt } from "@/lib/presetMarkers"
+import { normalizeRegexScripts } from "@/lib/parsers/regex"
+import type {
+  RegexTransferMode,
+  TransferRegexScriptsResult,
+} from "@/lib/regexOperations"
+import { scheduleSilentUpload } from "@/lib/cloudSync"
+
+function migratePresetRegexState(preset: Preset): Preset {
+  const rawScripts = preset.extensions?.regex_scripts
+  if (!Array.isArray(rawScripts)) return preset
+
+  return {
+    ...preset,
+    extensions: {
+      ...(preset.extensions ?? {}),
+      regex_scripts: normalizeRegexScripts(rawScripts),
+    },
+  }
+}
 
 function tokenSummaryText(
   status: ReturnType<typeof useTokenCounts>["status"],
@@ -144,10 +163,16 @@ function PresetEditorContent({ id }: { id?: string }) {
       .then((p) => {
         if (!active) return
         if (p) {
-          const loadedOrder = getEditablePresetOrder(p)
-          setPreset(p)
+          const migratedPreset = migratePresetRegexState(p)
+          const loadedOrder = getEditablePresetOrder(migratedPreset)
+          setPreset(migratedPreset)
           setOrder(loadedOrder)
-          setSavedSnapshot(createEditorSnapshot({ preset: p, order: loadedOrder }))
+          setSavedSnapshot(
+            createEditorSnapshot({
+              preset: migratedPreset,
+              order: loadedOrder,
+            })
+          )
         } else {
           toast.error("预设不存在")
           navigate("/presets")
@@ -187,6 +212,28 @@ function PresetEditorContent({ id }: { id?: string }) {
     } catch {
       toast.error("保存失败")
     }
+  }
+
+  function handleRegexTransferComplete(
+    result: TransferRegexScriptsResult,
+    mode: RegexTransferMode
+  ) {
+    if (!preset) return
+    if (mode === "move") {
+      const updatedPreset: Preset = {
+        ...preset,
+        extensions: {
+          ...(preset.extensions ?? {}),
+          regex_scripts: result.sourceScripts,
+        },
+        updated_at: result.sourceUpdatedAt,
+      }
+      setPreset(updatedPreset)
+      setSavedSnapshot(
+        createEditorSnapshot({ preset: updatedPreset, order })
+      )
+    }
+    scheduleSilentUpload()
   }
 
   function handleExport() {
@@ -584,8 +631,21 @@ function PresetEditorContent({ id }: { id?: string }) {
             {/* 正则脚本 */}
             <div id="section-regex">
               <PresetRegex
+                presetId={preset.id}
+                updatedAt={preset.updated_at}
                 scripts={(preset.extensions?.regex_scripts as RegexScript[]) ?? []}
                 onCopyFromPreset={() => setCopyOpen(true)}
+                canTransfer={
+                  !isNew && !pageIsDirty && !promptEditorDirty
+                }
+                transferDisabledReason={
+                  isNew
+                    ? "请先保存这个预设，再复制或移动 Regex。"
+                    : pageIsDirty || promptEditorDirty
+                      ? "请先保存当前页面的修改，再复制或移动 Regex。"
+                      : ""
+                }
+                onTransferComplete={handleRegexTransferComplete}
                 onChange={(scripts) => {
                   handleChange({
                     ...preset,

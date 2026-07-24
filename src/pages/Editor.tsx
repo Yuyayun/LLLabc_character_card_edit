@@ -26,6 +26,11 @@ import {
   createEditorSnapshot,
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges"
+import { normalizeRegexScripts } from "@/lib/parsers/regex"
+import type {
+  RegexTransferMode,
+  TransferRegexScriptsResult,
+} from "@/lib/regexOperations"
 
 type Section = "basic" | "definition" | "greetings" | "worldbook" | "regex" | "depth" | "memos"
 
@@ -77,8 +82,12 @@ function EditorContent({ id }: { id?: string }) {
       .then((c) => {
         if (!active) return
         if (c) {
-          setCard(c)
-          setSavedSnapshot(createEditorSnapshot(c))
+          const migratedCard = {
+            ...c,
+            regex_scripts: normalizeRegexScripts(c.regex_scripts),
+          }
+          setCard(migratedCard)
+          setSavedSnapshot(createEditorSnapshot(migratedCard))
         } else {
           toast.error("角色卡不存在")
           navigate("/")
@@ -114,6 +123,23 @@ function EditorContent({ id }: { id?: string }) {
     } catch {
       toast.error("保存失败，请检查存储空间")
     }
+  }
+
+  function handleRegexTransferComplete(
+    result: TransferRegexScriptsResult,
+    mode: RegexTransferMode
+  ) {
+    if (!card) return
+    if (mode === "move") {
+      const updatedCard: CharacterCard = {
+        ...card,
+        regex_scripts: result.sourceScripts,
+        updated_at: result.sourceUpdatedAt,
+      }
+      setCard(updatedCard)
+      setSavedSnapshot(createEditorSnapshot(updatedCard))
+    }
+    scheduleSilentUpload()
   }
 
   async function handleExportJSON() {
@@ -229,7 +255,23 @@ function EditorContent({ id }: { id?: string }) {
             {section === "definition" && <EditorDefinition card={card} onChange={handleChange} />}
             {section === "greetings" && <EditorGreetings card={card} onChange={handleChange} />}
             {section === "worldbook" && <EditorWorldBook card={card} onChange={handleChange} />}
-            {section === "regex" && <EditorRegex card={card} onChange={handleChange} />}
+            {section === "regex" && (
+              <EditorRegex
+                card={card}
+                onChange={handleChange}
+                canTransfer={
+                  !isNew && !cardIsDirty && !memoSavePending
+                }
+                transferDisabledReason={
+                  isNew
+                    ? "请先保存这张角色卡，再复制或移动 Regex。"
+                    : cardIsDirty || memoSavePending
+                      ? "请先保存当前页面的修改，再复制或移动 Regex。"
+                      : ""
+                }
+                onTransferComplete={handleRegexTransferComplete}
+              />
+            )}
             {section === "depth" && <EditorDepth card={card} onChange={handleChange} />}
             {section === "memos" && (
               <EditorMemos card={card} onPendingChange={setMemoSavePending} />
