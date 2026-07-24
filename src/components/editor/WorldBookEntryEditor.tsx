@@ -440,8 +440,16 @@ export function WorldBookEntryEditor({
               <Input
                 type="number"
                 min={0}
-                value={ext.delay_until_recursion}
-                onChange={(e) => onExtPatch({ delay_until_recursion: Number(e.target.value) })}
+                value={
+                  typeof ext.delay_until_recursion === "boolean"
+                    ? Number(ext.delay_until_recursion)
+                    : ext.delay_until_recursion
+                }
+                onChange={(e) =>
+                  onExtPatch({
+                    delay_until_recursion: Number(e.target.value),
+                  })
+                }
                 className="h-8 text-xs"
               />
             </div>

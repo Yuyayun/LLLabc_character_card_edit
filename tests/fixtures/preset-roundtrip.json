@@ -1,0 +1,94 @@
+{
+  "temperature": 0.7,
+  "top_p": 0.8,
+  "openai_max_context": 64000,
+  "openai_max_tokens": 2048,
+  "future_preset_root": {
+    "keep": "preset-root"
+  },
+  "prompts": [
+    {
+      "identifier": "main",
+      "name": "主提示词",
+      "enabled": true,
+      "injection_position": 0,
+      "injection_depth": 4,
+      "injection_order": 100,
+      "role": "system",
+      "content": "主内容",
+      "system_prompt": false,
+      "marker": false,
+      "forbid_overrides": false,
+      "future_prompt_field": "keep"
+    },
+    {
+      "identifier": "other",
+      "name": "其他组提示词",
+      "enabled": true,
+      "injection_position": 0,
+      "injection_depth": 4,
+      "injection_order": 200,
+      "role": "system",
+      "content": "其他内容",
+      "system_prompt": false,
+      "marker": false,
+      "forbid_overrides": false
+    }
+  ],
+  "prompt_order": [
+    {
+      "character_id": 100001,
+      "order": [
+        {
+          "identifier": "main",
+          "enabled": true,
+          "future_order_field": "keep-main"
+        }
+      ],
+      "future_group_field": "keep-editable"
+    },
+    {
+      "character_id": 424242,
+      "order": [
+        {
+          "identifier": "other",
+          "enabled": false,
+          "future_order_field": "keep-other"
+        }
+      ],
+      "future_group_field": "keep-other-group"
+    }
+  ],
+  "extensions": {
+    "future_preset_extension": {
+      "keep": "preset-extension"
+    },
+    "preferred_char_id": 424242,
+    "prompt_order": [
+      {
+        "identifier": "legacy",
+        "enabled": true
+      }
+    ],
+    "regex_scripts": [
+      {
+        "id": "preset-regex",
+        "scriptName": "预设正则",
+        "findRegex": "/preset/g",
+        "replaceString": "kept",
+        "trimStrings": [],
+        "placement": [
+          2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null,
+        "future_regex_field": "keep-preset-regex"
+      }
+    ]
+  }
+}

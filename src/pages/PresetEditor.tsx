@@ -5,7 +5,7 @@ import type { Preset, PresetPrompt, PresetPromptOrder } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-  ArrowLeft, Save, Download, Upload,
+  ArrowLeft, Save, Download,
   PanelLeftClose, PanelLeft,
   SlidersHorizontal, MessageSquareText,
   ArrowRightToLine, Braces, Copy, FileText,
@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { createDefaultPreset } from "@/lib/helpers"
-import { exportPresetJSON, parsePresetJSON } from "@/lib/parser"
+import { exportPresetJSON } from "@/lib/parser"
 import { PresetSamplerParams } from "@/components/preset/PresetSamplerParams"
 import { PresetFormatTemplates } from "@/components/preset/PresetFormatTemplates"
 import { PresetPromptList } from "@/components/preset/PresetPromptList"
@@ -199,22 +199,6 @@ function PresetEditorContent({ id }: { id?: string }) {
       toast.success("已导出")
     } catch {
       toast.error("导出失败")
-    }
-  }
-
-  async function handleImport(file: File) {
-    try {
-      const imported = await parsePresetJSON(file)
-      const existingIds = new Set(preset?.prompts.map((p) => p.identifier) ?? [])
-      const newPrompts = (imported.prompts ?? []).filter(
-        (p) => !existingIds.has(p.identifier)
-      )
-      if (preset) {
-        handleChange({ ...preset, prompts: [...preset.prompts, ...newPrompts] })
-      }
-      toast.success(`已导入 ${newPrompts.length} 条提示词`)
-    } catch {
-      toast.error("导入失败")
     }
   }
 
@@ -444,20 +428,6 @@ function PresetEditorContent({ id }: { id?: string }) {
             <Download className="h-3.5 w-3.5 mr-1" />
             导出
           </Button>
-          <label className="cursor-pointer inline-flex items-center gap-1.5 h-8 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] border border-border bg-background hover:bg-muted hover:text-foreground whitespace-nowrap transition-all select-none">
-            <Upload className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">导入</span>
-            <input
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) handleImport(file)
-                e.target.value = ""
-              }}
-            />
-          </label>
         </div>
       </header>
 

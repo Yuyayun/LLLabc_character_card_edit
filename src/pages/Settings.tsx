@@ -898,6 +898,24 @@ export function Settings() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.7
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-07-24
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>重构角色卡、预设、世界书与正则的导入导出底层，现有文件格式和公开行为保持不变</li>
+                <li>角色卡与预设现在共用 Regex 编辑核心，同时保留各自原有的布局、排序和复制能力</li>
+                <li>世界书递归延迟同时兼容布尔值与数字层级，编辑后会稳定保存为数字</li>
+                <li>移除预设编辑器内部容易误解的旧“导入”按钮，预设主页面的完整导入仍可正常使用</li>
+                <li>新增固定格式回归测试，保护未知扩展字段、预设顺序组和 PNG 角色卡数据</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   v1.1.6
                 </span>
                 <span className="text-xs text-muted-foreground">

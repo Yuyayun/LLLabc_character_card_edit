@@ -118,7 +118,7 @@ export interface WorldBookEntryExtensions {
   group_override: boolean
   group_weight: number
   prevent_recursion: boolean
-  delay_until_recursion: number
+  delay_until_recursion: number | boolean
   scan_depth: number | null
   match_whole_words: boolean | null
   use_group_scoring: boolean | null
