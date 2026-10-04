@@ -41,9 +41,11 @@ export function PresetPromptPool({
   const filtered = prompts.filter((p) => {
     if (!search) return true
     const lower = search.toLowerCase()
+    const name = typeof p.name === "string" ? p.name : ""
+    const content = typeof p.content === "string" ? p.content : ""
     return (
-      p.name.toLowerCase().includes(lower) ||
-      p.content.toLowerCase().includes(lower)
+      name.toLowerCase().includes(lower) ||
+      content.toLowerCase().includes(lower)
     )
   })
 

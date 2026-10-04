@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
-import { buildCardOutput, normalizeCard } from "@/lib/parser"
+import { buildCardOutput, importCard, normalizeCard } from "@/lib/parser"
 
 function loadFixture(name: string): Record<string, unknown> {
   return JSON.parse(
@@ -39,5 +39,49 @@ describe("角色卡往返", () => {
     expect(output).not.toHaveProperty("updated_at")
     expect(book).not.toHaveProperty("raw_data")
     expect(book).not.toHaveProperty("is_standalone")
+  })
+
+  it("读取并同步 v3 data.avatar", () => {
+    const card = normalizeCard({
+      avatar: "none",
+      data: {
+        name: "头像测试",
+        avatar: "avatar.png",
+      },
+    })
+
+    expect(card.avatar).toBe("avatar.png")
+    card.avatar = "updated.png"
+
+    const output = buildCardOutput(card)
+    expect(output.avatar).toBe("updated.png")
+    expect((output.data as Record<string, unknown>).avatar).toBe("updated.png")
+  })
+
+  it("为界面依赖字段补安全默认值", () => {
+    const card = normalizeCard({
+      name: 123,
+      tags: "invalid",
+      data: {
+        alternate_greetings: "invalid",
+        group_only_greetings: ["有效开场"],
+      },
+    })
+
+    expect(card.name).toBe("")
+    expect(card.tags).toEqual([])
+    expect(card.alternate_greetings).toEqual([])
+    expect(card.group_only_greetings).toEqual(["有效开场"])
+  })
+
+  it("接受大小写混合的 JSON 扩展名", async () => {
+    const file = {
+      name: "Character.JSON",
+      text: async () => JSON.stringify({ data: { name: "大写扩展名" } }),
+    } as File
+
+    await expect(importCard(file)).resolves.toMatchObject({
+      name: "大写扩展名",
+    })
   })
 })

@@ -14,3 +14,36 @@ export function parseDate(value: unknown): Date | null {
   }
   return null
 }
+
+export function stringValue(
+  value: unknown,
+  fallback = ""
+): string {
+  return typeof value === "string" ? value : fallback
+}
+
+export function numberValue(
+  value: unknown,
+  fallback: number
+): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : fallback
+}
+
+export function booleanValue(
+  value: unknown,
+  fallback: boolean
+): boolean {
+  return typeof value === "boolean" ? value : fallback
+}
+
+export function stringArrayValue(
+  value: unknown,
+  fallback: string[] = []
+): string[] {
+  return Array.isArray(value) &&
+    value.every((item) => typeof item === "string")
+    ? structuredClone(value)
+    : structuredClone(fallback)
+}

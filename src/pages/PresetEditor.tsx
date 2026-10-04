@@ -40,6 +40,7 @@ import {
 import { useTokenCounts } from "@/hooks/useTokenCount"
 import { isPresetMarkerPrompt } from "@/lib/presetMarkers"
 import { normalizeRegexScripts } from "@/lib/parsers/regex"
+import { normalizePresetPrompts } from "@/lib/parsers/preset"
 import type {
   RegexTransferMode,
   TransferRegexScriptsResult,
@@ -48,14 +49,15 @@ import { scheduleSilentUpload } from "@/lib/cloudSync"
 
 function migratePresetRegexState(preset: Preset): Preset {
   const rawScripts = preset.extensions?.regex_scripts
-  if (!Array.isArray(rawScripts)) return preset
-
   return {
     ...preset,
-    extensions: {
-      ...(preset.extensions ?? {}),
-      regex_scripts: normalizeRegexScripts(rawScripts),
-    },
+    prompts: normalizePresetPrompts(preset.prompts),
+    extensions: Array.isArray(rawScripts)
+      ? {
+          ...(preset.extensions ?? {}),
+          regex_scripts: normalizeRegexScripts(rawScripts),
+        }
+      : preset.extensions,
   }
 }
 
@@ -430,7 +432,9 @@ function PresetEditorContent({ id }: { id?: string }) {
   const movePoolFiltered = (preset?.prompts ?? []).filter((p) => {
     if (!moveSearch) return true
     const lower = moveSearch.toLowerCase()
-    return p.name.toLowerCase().includes(lower) || p.content.toLowerCase().includes(lower)
+    const name = typeof p.name === "string" ? p.name : ""
+    const content = typeof p.content === "string" ? p.content : ""
+    return name.toLowerCase().includes(lower) || content.toLowerCase().includes(lower)
   })
 
   if (loading) {

@@ -63,7 +63,8 @@ export function PresetPromptList({
       if (!search) return true
       const p = promptMap.get(o.identifier)
       if (!p) return false
-      return p.name.toLowerCase().includes(search.toLowerCase())
+      const name = typeof p.name === "string" ? p.name : ""
+      return name.toLowerCase().includes(search.toLowerCase())
     })
 
   function moveUp(origIndex: number) {

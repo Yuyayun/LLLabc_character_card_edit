@@ -65,4 +65,22 @@ describe("PNG 角色卡 chunk 往返", () => {
       rawVersion: "v3",
     })
   })
+
+  it("拒绝越界的 chunk 长度而不是继续循环", () => {
+    const malformed = new Uint8Array(20)
+    malformed.set(new Uint8Array(Buffer.from(TRANSPARENT_PNG, "base64")).slice(0, 8))
+    malformed.set([0xff, 0xff, 0xff, 0xf4], 8)
+    malformed.set(new TextEncoder().encode("tEXt"), 12)
+
+    expect(() => extractCardFromPNG(malformed)).toThrow("PNG 文件结构损坏")
+    expect(() => injectCardChunkIntoPNG(malformed, "e30=", "ccv3"))
+      .toThrow("PNG 文件结构损坏")
+  })
+
+  it("拒绝缺少 IEND 的截断 PNG", () => {
+    const png = new Uint8Array(Buffer.from(TRANSPARENT_PNG, "base64"))
+    const truncated = png.slice(0, png.length - 12)
+
+    expect(() => extractCardFromPNG(truncated)).toThrow("PNG 文件结构损坏")
+  })
 })

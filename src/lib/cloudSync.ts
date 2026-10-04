@@ -1,5 +1,15 @@
-import type { CloudSyncConfig, CloudData } from "@/types"
-import { db } from "./db"
+import type {
+  CharacterCard,
+  ChatSession,
+  CloudSyncConfig,
+  CloudData,
+  Memo,
+  Preset,
+  WorldBook,
+} from "@/types"
+import { db, type AppDB } from "./db"
+import { normalizePresetPrompts } from "./parsers/preset"
+import { parseDate } from "./parsers/shared"
 import { toast } from "sonner"
 
 const GITHUB_API = "https://api.github.com"
@@ -117,40 +127,134 @@ export async function exportAllData(): Promise<CloudData> {
   }
 }
 
+function restoredDate(value: unknown): Date {
+  return parseDate(value) ?? new Date()
+}
+
+function restoreWorldBookDates(book: WorldBook): WorldBook {
+  return {
+    ...book,
+    created_at: restoredDate(book.created_at),
+    updated_at: restoredDate(book.updated_at),
+  }
+}
+
+function restoreCardDates(card: CharacterCard): CharacterCard {
+  return {
+    ...card,
+    character_book: card.character_book
+      ? restoreWorldBookDates(card.character_book)
+      : undefined,
+    created_at: restoredDate(card.created_at),
+    updated_at: restoredDate(card.updated_at),
+  }
+}
+
+function restorePresetDates(preset: Preset): Preset {
+  return {
+    ...preset,
+    prompts: normalizePresetPrompts(preset.prompts),
+    created_at: restoredDate(preset.created_at),
+    updated_at: restoredDate(preset.updated_at),
+  }
+}
+
+function restoreChatDates(session: ChatSession): ChatSession {
+  return {
+    ...session,
+    messages: Array.isArray(session.messages)
+      ? session.messages.map((message) => ({
+          ...message,
+          created_at: restoredDate(message.created_at),
+        }))
+      : [],
+    created_at: restoredDate(session.created_at),
+    updated_at: restoredDate(session.updated_at),
+  }
+}
+
+function restoreMemoDates(memo: Memo): Memo {
+  return {
+    ...memo,
+    created_at: restoredDate(memo.created_at),
+    updated_at: restoredDate(memo.updated_at),
+  }
+}
+
+function prepareCloudData(data: CloudData): CloudData {
+  return {
+    ...data,
+    characterCards: Array.isArray(data.characterCards)
+      ? data.characterCards.map(restoreCardDates)
+      : [],
+    worldBooks: Array.isArray(data.worldBooks)
+      ? data.worldBooks.map(restoreWorldBookDates)
+      : [],
+    presets: Array.isArray(data.presets)
+      ? data.presets.map(restorePresetDates)
+      : [],
+    apiConfigs: Array.isArray(data.apiConfigs) ? data.apiConfigs : [],
+    chatSessions: Array.isArray(data.chatSessions)
+      ? data.chatSessions.map(restoreChatDates)
+      : [],
+    memos: Array.isArray(data.memos)
+      ? data.memos.map(restoreMemoDates)
+      : [],
+    settings: Array.isArray(data.settings) ? data.settings : [],
+  }
+}
+
 export async function importAllData(
   data: CloudData,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  database: AppDB = db
 ): Promise<void> {
   reportProgress(onProgress, 72, "准备写入本地数据")
-  if (data.characterCards?.length) {
-    reportProgress(onProgress, 76, "导入角色卡")
-    await db.characterCards.bulkPut(data.characterCards)
-  }
-  if (data.worldBooks?.length) {
-    reportProgress(onProgress, 80, "导入世界书")
-    await db.worldBooks.bulkPut(data.worldBooks)
-  }
-  if (data.presets?.length) {
-    reportProgress(onProgress, 84, "导入预设")
-    await db.presets.bulkPut(data.presets)
-  }
-  if (data.apiConfigs?.length) {
-    reportProgress(onProgress, 88, "导入 API 配置")
-    await db.apiConfigs.bulkPut(data.apiConfigs)
-  }
-  if (data.chatSessions?.length) {
-    reportProgress(onProgress, 92, "导入聊天记录")
-    await db.chatSessions.bulkPut(data.chatSessions)
-  }
-  if (data.memos?.length) {
-    reportProgress(onProgress, 94, "导入灵感笔记")
-    await db.memos.bulkPut(data.memos)
-  }
-  if (data.settings?.length) {
-    reportProgress(onProgress, 98, "导入应用设置")
-    await db.settings.bulkPut(data.settings)
-  }
-  reportProgress(onProgress, 100, "下载同步完成")
+  const prepared = prepareCloudData(data)
+
+  await database.transaction(
+    "rw",
+    [
+      database.characterCards,
+      database.worldBooks,
+      database.presets,
+      database.apiConfigs,
+      database.chatSessions,
+      database.memos,
+      database.settings,
+    ],
+    async () => {
+      if (prepared.characterCards.length) {
+        reportProgress(onProgress, 76, "合并角色卡")
+        await database.characterCards.bulkPut(prepared.characterCards)
+      }
+      if (prepared.worldBooks.length) {
+        reportProgress(onProgress, 80, "合并世界书")
+        await database.worldBooks.bulkPut(prepared.worldBooks)
+      }
+      if (prepared.presets.length) {
+        reportProgress(onProgress, 84, "合并预设")
+        await database.presets.bulkPut(prepared.presets)
+      }
+      if (prepared.apiConfigs.length) {
+        reportProgress(onProgress, 88, "合并 API 配置")
+        await database.apiConfigs.bulkPut(prepared.apiConfigs)
+      }
+      if (prepared.chatSessions.length) {
+        reportProgress(onProgress, 92, "合并聊天记录")
+        await database.chatSessions.bulkPut(prepared.chatSessions)
+      }
+      if (prepared.memos.length) {
+        reportProgress(onProgress, 94, "合并灵感笔记")
+        await database.memos.bulkPut(prepared.memos)
+      }
+      if (prepared.settings?.length) {
+        reportProgress(onProgress, 98, "合并应用设置")
+        await database.settings.bulkPut(prepared.settings)
+      }
+    }
+  )
+  reportProgress(onProgress, 100, "下载合并完成")
 }
 
 // ========== Token 验证 ==========

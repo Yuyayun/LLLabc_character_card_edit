@@ -28,6 +28,7 @@ export function Dashboard() {
   const [cards, setCards] = useState<CharacterCard[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -35,13 +36,24 @@ export function Dashboard() {
   }, [])
 
   async function loadCards() {
-    const all = await db.characterCards.orderBy("updated_at").reverse().toArray()
-    setCards(all)
-    setLoading(false)
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const all = await db.characterCards.orderBy("updated_at").reverse().toArray()
+      setCards(all)
+    } catch {
+      setCards([])
+      setLoadError(true)
+      toast.error("加载角色卡失败，请重试")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const filtered = cards.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+    (typeof c.name === "string" ? c.name : "")
+      .toLowerCase()
+      .includes(search.toLowerCase())
   )
 
   async function handleImport(file: File) {
@@ -165,6 +177,18 @@ export function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
         加载中...
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        <p className="text-sm text-muted-foreground">角色卡列表加载失败</p>
+        <Button variant="outline" size="sm" onClick={loadCards}>
+          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+          重试
+        </Button>
       </div>
     )
   }

@@ -99,4 +99,29 @@ describe("预设往返", () => {
     })
     expect(scripts?.[0].id).toEqual(expect.any(String))
   })
+
+  it("为缺少名称或内容的提示词补默认值", () => {
+    const preset = normalizePreset({
+      prompts: [
+        {
+          identifier: "marker",
+          name: "占位条目",
+          marker: true,
+        },
+        {
+          identifier: "nameless",
+          content: "仍可搜索的内容",
+        },
+      ],
+    })
+
+    expect(preset.prompts[0]).toMatchObject({
+      name: "占位条目",
+      content: "",
+    })
+    expect(preset.prompts[1]).toMatchObject({
+      name: "",
+      content: "仍可搜索的内容",
+    })
+  })
 })

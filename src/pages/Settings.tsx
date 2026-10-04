@@ -243,7 +243,7 @@ export function Settings() {
       toast.error("请先配置 Token 和 Gist ID");
       return;
     }
-    if (!confirm("云端下载将覆盖本地全部数据，建议先手动备份。确认继续？"))
+    if (!confirm("云端数据将合并到本地：同 ID 记录会更新，本地独有记录会保留。建议先手动备份。确认继续？"))
       return;
     setDownloading(true);
     setSyncProgress({ percent: 0, step: "准备下载" });
@@ -877,7 +877,7 @@ export function Settings() {
                         </div>
                       )}
                       <p className="text-[10px] text-muted-foreground">
-                        手动下载会覆盖本地全部数据，建议先备份。上传不会删除云端原有数据。
+                        手动下载会合并云端数据：同 ID 记录会更新，本地独有记录会保留。上传仅写入新版压缩文件。
                       </p>
                     </>
                   )}
@@ -895,6 +895,24 @@ export function Settings() {
             <CardTitle className="text-sm sm:text-base">更新日志</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  v1.1.10
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  2026-10-04
+                </span>
+              </div>
+              <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 list-disc list-inside ml-1">
+                <li>修复预设移动弹窗和提示词列表搜索缺少正文的条目时崩溃</li>
+                <li>云端下载明确为合并模式，同 ID 更新、本地独有数据保留，写入失败时整体回滚</li>
+                <li>修复角色卡 v3 头像字段，并阻止损坏 PNG 的异常 chunk 长度卡住页面</li>
+                <li>角色卡与预设导入补齐必要字段，角色卡文件扩展名不再区分大小写</li>
+                <li>预设主页完整显示名称，角色卡列表加载失败时可以重试</li>
+              </ul>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">

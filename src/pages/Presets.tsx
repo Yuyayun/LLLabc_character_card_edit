@@ -82,7 +82,9 @@ export function Presets() {
   }
 
   const filtered = presets.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    (typeof p.name === "string" ? p.name : "")
+      .toLowerCase()
+      .includes(search.toLowerCase())
   )
 
   return (
@@ -151,7 +153,7 @@ export function Presets() {
                   <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="min-w-0 w-full">
-                  <p className="text-xs sm:text-sm font-medium truncate">
+                  <p className="text-xs sm:text-sm font-medium leading-snug whitespace-normal break-words">
                     {preset.name || "未命名预设"}
                   </p>
                   <p className="text-[10px] text-muted-foreground">

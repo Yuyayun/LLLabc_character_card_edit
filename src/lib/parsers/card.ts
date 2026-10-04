@@ -2,21 +2,34 @@ import type { CharacterCard } from "@/types"
 import { blobToDataURL, downloadBlob, downloadFile } from "@/lib/file"
 import { generateId } from "@/lib/utils"
 import { buildRegexScripts, normalizeRegexScripts } from "./regex"
-import { cloneRecord, isRecord, parseDate } from "./shared"
+import {
+  booleanValue,
+  cloneRecord,
+  isRecord,
+  numberValue,
+  parseDate,
+  stringArrayValue,
+  stringValue,
+} from "./shared"
 import { buildCharacterBook, normalizeCharacterBook } from "./worldbook"
 
 export async function importCard(file: File): Promise<CharacterCard> {
-  if (file.name.endsWith(".json")) {
+  const fileName = file.name.toLowerCase()
+  if (fileName.endsWith(".json")) {
     return importFromJSON(await file.text())
   }
-  if (file.name.endsWith(".png")) {
+  if (fileName.endsWith(".png")) {
     return importFromPNG(file)
   }
   throw new Error("不支持的文件格式，请使用 .json 或 .png")
 }
 
 async function importFromJSON(text: string): Promise<CharacterCard> {
-  const raw = JSON.parse(text) as Record<string, unknown>
+  const parsed: unknown = JSON.parse(text)
+  if (!isRecord(parsed)) {
+    throw new Error("角色卡 JSON 顶层必须是对象")
+  }
+  const raw = parsed
   return normalizeCard(raw)
 }
 
@@ -34,40 +47,69 @@ async function importFromPNG(file: File): Promise<CharacterCard> {
   return card
 }
 
-export function extractCardFromPNG(bytes: Uint8Array): {
-  raw: Record<string, unknown> | null
-  rawVersion: string
-} {
-  if (bytes.length < 8) return { raw: null, rawVersion: "" }
+const PNG_SIGNATURE = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+])
 
-  const header = new Uint8Array([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-  ])
-  for (let index = 0; index < header.length; index++) {
-    if (bytes[index] !== header[index]) {
-      return { raw: null, rawVersion: "" }
-    }
+function hasPNGSignature(bytes: Uint8Array): boolean {
+  if (bytes.length < PNG_SIGNATURE.length) return false
+  return PNG_SIGNATURE.every((value, index) => bytes[index] === value)
+}
+
+interface PNGChunk {
+  length: number
+  type: string
+  dataStart: number
+  end: number
+}
+
+function readPNGChunk(bytes: Uint8Array, offset: number): PNGChunk {
+  if (offset + 12 > bytes.length) {
+    throw new Error("PNG 文件结构损坏")
   }
 
-  let offset = 8
-  let raw: Record<string, unknown> | null = null
-  let rawVersion = ""
+  const length = new DataView(
+    bytes.buffer,
+    bytes.byteOffset + offset,
+    4
+  ).getUint32(0, false)
+  const end = offset + 12 + length
+  if (end > bytes.length) {
+    throw new Error("PNG 文件结构损坏")
+  }
 
-  while (offset < bytes.length - 8) {
-    const length =
-      (bytes[offset] << 24) |
-      (bytes[offset + 1] << 16) |
-      (bytes[offset + 2] << 8) |
-      bytes[offset + 3]
-    const type = String.fromCharCode(
+  return {
+    length,
+    type: String.fromCharCode(
       bytes[offset + 4],
       bytes[offset + 5],
       bytes[offset + 6],
       bytes[offset + 7]
-    )
+    ),
+    dataStart: offset + 8,
+    end,
+  }
+}
 
-    if (type === "tEXt") {
-      const chunkData = bytes.slice(offset + 8, offset + 8 + length)
+export function extractCardFromPNG(bytes: Uint8Array): {
+  raw: Record<string, unknown> | null
+  rawVersion: string
+} {
+  if (!hasPNGSignature(bytes)) return { raw: null, rawVersion: "" }
+
+  let offset = 8
+  let raw: Record<string, unknown> | null = null
+  let rawVersion = ""
+  let foundIEND = false
+
+  while (offset < bytes.length) {
+    const chunk = readPNGChunk(bytes, offset)
+
+    if (chunk.type === "tEXt") {
+      const chunkData = bytes.slice(
+        chunk.dataStart,
+        chunk.dataStart + chunk.length
+      )
       const nullIndex = chunkData.indexOf(0)
 
       if (nullIndex !== -1) {
@@ -87,11 +129,11 @@ export function extractCardFromPNG(bytes: Uint8Array): {
               utf8Bytes[index] = binary.charCodeAt(index)
             }
 
-            const parsed = JSON.parse(
+            const parsed: unknown = JSON.parse(
               new TextDecoder().decode(utf8Bytes)
-            ) as Record<string, unknown>
+            )
 
-            if (keyword === "ccv3" || !raw) {
+            if (isRecord(parsed) && (keyword === "ccv3" || !raw)) {
               raw = parsed
               rawVersion = keyword === "ccv3" ? "v3" : "v2"
             }
@@ -102,8 +144,15 @@ export function extractCardFromPNG(bytes: Uint8Array): {
       }
     }
 
-    if (type === "IEND") break
-    offset += 12 + length
+    if (chunk.type === "IEND") {
+      foundIEND = true
+      break
+    }
+    offset = chunk.end
+  }
+
+  if (!foundIEND) {
+    throw new Error("PNG 文件结构损坏")
   }
 
   return { raw, rawVersion }
@@ -123,44 +172,51 @@ export function normalizeCard(
   return {
     raw_data: structuredClone(raw),
     id: generateId(),
-    name: (raw.name as string) || (data.name as string) || "",
+    name: stringValue(raw.name) || stringValue(data.name),
     description:
-      (raw.description as string) || (data.description as string) || "",
+      stringValue(raw.description) || stringValue(data.description),
     personality:
-      (raw.personality as string) || (data.personality as string) || "",
+      stringValue(raw.personality) || stringValue(data.personality),
     scenario:
-      (raw.scenario as string) || (data.scenario as string) || "",
+      stringValue(raw.scenario) || stringValue(data.scenario),
     first_mes:
-      (raw.first_mes as string) || (data.first_mes as string) || "",
+      stringValue(raw.first_mes) || stringValue(data.first_mes),
     mes_example:
-      (raw.mes_example as string) || (data.mes_example as string) || "",
+      stringValue(raw.mes_example) || stringValue(data.mes_example),
     creatorcomment:
-      (raw.creatorcomment as string) ||
-      (data.creator_notes as string) ||
-      (data.creatorcomment as string) ||
-      "",
-    avatar: (raw.avatar as string) || "none",
-    talkativeness:
-      (raw.talkativeness as number) ??
-      (extensions.talkativeness as number) ??
-      (data.talkativeness as number) ??
-      0.5,
-    fav:
-      (raw.fav as boolean) ??
-      (extensions.fav as boolean) ??
-      (data.fav as boolean) ??
-      false,
-    tags: (raw.tags as string[]) ?? (data.tags as string[]) ?? [],
+      stringValue(raw.creatorcomment) ||
+      stringValue(data.creator_notes) ||
+      stringValue(data.creatorcomment),
+    avatar:
+      stringValue(data.avatar) || stringValue(raw.avatar) || "none",
+    talkativeness: numberValue(
+      raw.talkativeness,
+      numberValue(
+        extensions.talkativeness,
+        numberValue(data.talkativeness, 0.5)
+      )
+    ),
+    fav: booleanValue(
+      raw.fav,
+      booleanValue(
+        extensions.fav,
+        booleanValue(data.fav, false)
+      )
+    ),
+    tags: stringArrayValue(
+      raw.tags,
+      stringArrayValue(data.tags)
+    ),
     spec: "chara_card_v3",
     spec_version: "3.0",
-    creator: (data.creator as string) || "",
-    character_version: (data.character_version as string) || "",
-    alternate_greetings: (data.alternate_greetings as string[]) || [],
+    creator: stringValue(data.creator),
+    character_version: stringValue(data.character_version),
+    alternate_greetings: stringArrayValue(data.alternate_greetings),
     group_only_greetings:
-      (data.group_only_greetings as string[]) || [],
-    system_prompt: (data.system_prompt as string) || "",
+      stringArrayValue(data.group_only_greetings),
+    system_prompt: stringValue(data.system_prompt),
     post_history_instructions:
-      (data.post_history_instructions as string) || "",
+      stringValue(data.post_history_instructions),
     character_book: normalizeCharacterBook(
       data.character_book || data.world_book
     ),
@@ -180,12 +236,14 @@ export function normalizeCard(
   }
 }
 
-function normalizeDepthPrompt(raw: Record<string, unknown> | undefined) {
+function normalizeDepthPrompt(
+  raw: Record<string, unknown> | undefined
+): CharacterCard["depth_prompt"] {
+  const role = raw?.role
   return {
-    prompt: (raw?.prompt as string) || "",
-    depth: (raw?.depth as number) ?? 4,
-    role:
-      (raw?.role as "system" | "user" | "assistant") || "system",
+    prompt: stringValue(raw?.prompt),
+    depth: numberValue(raw?.depth, 4),
+    role: role === "user" || role === "assistant" ? role : "system",
   }
 }
 
@@ -294,6 +352,7 @@ export function buildCardOutput(
     first_mes: card.first_mes,
     mes_example: card.mes_example,
     creator_notes: card.creatorcomment,
+    avatar: card.avatar,
     system_prompt: card.system_prompt,
     post_history_instructions: card.post_history_instructions,
     tags: card.tags,
@@ -355,6 +414,10 @@ export function injectCardChunkIntoPNG(
   base64Data: string,
   keyword: "ccv3" | "chara"
 ): Uint8Array {
+  if (!hasPNGSignature(pngBytes)) {
+    throw new Error("PNG 文件结构损坏")
+  }
+
   const keywordBytes = new TextEncoder().encode(keyword)
   const dataBytes = new TextEncoder().encode(base64Data)
   const chunkData = new Uint8Array(
@@ -380,25 +443,15 @@ export function injectCardChunkIntoPNG(
 
   const parts: Uint8Array[] = [pngBytes.slice(0, 8)]
   let offset = 8
+  let foundIEND = false
 
-  while (offset < pngBytes.length - 8) {
-    const chunkLength =
-      (pngBytes[offset] << 24) |
-      (pngBytes[offset + 1] << 16) |
-      (pngBytes[offset + 2] << 8) |
-      pngBytes[offset + 3]
-    const chunkType = String.fromCharCode(
-      pngBytes[offset + 4],
-      pngBytes[offset + 5],
-      pngBytes[offset + 6],
-      pngBytes[offset + 7]
-    )
-    const chunkTotalLength = 12 + chunkLength
+  while (offset < pngBytes.length) {
+    const chunk = readPNGChunk(pngBytes, offset)
 
-    if (chunkType === "tEXt") {
+    if (chunk.type === "tEXt") {
       const data = pngBytes.slice(
-        offset + 8,
-        offset + 8 + chunkLength
+        chunk.dataStart,
+        chunk.dataStart + chunk.length
       )
       const nullIndex = data.indexOf(0)
       if (nullIndex !== -1) {
@@ -409,20 +462,25 @@ export function injectCardChunkIntoPNG(
           existingKeyword === "chara" ||
           existingKeyword === "ccv3"
         ) {
-          offset += chunkTotalLength
+          offset = chunk.end
           continue
         }
       }
     }
 
-    if (chunkType === "IEND") {
+    if (chunk.type === "IEND") {
       parts.push(newChunk)
+      parts.push(pngBytes.slice(offset))
+      foundIEND = true
+      break
     }
 
-    parts.push(
-      pngBytes.slice(offset, offset + chunkTotalLength)
-    )
-    offset += chunkTotalLength
+    parts.push(pngBytes.slice(offset, chunk.end))
+    offset = chunk.end
+  }
+
+  if (!foundIEND) {
+    throw new Error("PNG 文件结构损坏")
   }
 
   const totalLength = parts.reduce(
